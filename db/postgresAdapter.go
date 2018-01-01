@@ -3,10 +3,6 @@ package db
 import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"reflect"
-	"github.com/jmoiron/sqlx/reflectx"
-	"errors"
-	"fmt"
 )
 
 // PostgresAdapter is a data store adapter that persists to the Postgres database
@@ -46,7 +42,8 @@ func (p PostgresAdapter) QueryOne(dest interface{}, baseQuery string, bindVars .
 
 // Exec executes a statement
 func (p PostgresAdapter) Exec(baseExec string, bindVars ...interface{}) (int, error) {
-	if result, err := p.db.Exec(baseExec, bindVars...); err != nil {
+	e := p.db.Rebind(baseExec)
+	if result, err := p.db.Exec(e, bindVars...); err != nil {
 		return -1, err
 	} else {
 		if rows, err := result.RowsAffected(); err != nil {
