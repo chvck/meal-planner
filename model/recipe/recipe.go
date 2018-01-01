@@ -86,16 +86,16 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int) ([]R
 // Save persists the specific Recipe
 // TODO: Consider adding a Save function to the IDataStoreAdapter which uses reflection to accept an interface and then iterate over fields for updates/saves
 func Save(dataStore model.IDataStoreAdapter, r Recipe) error {
-	if r.Id > 0 {
+	if r.Id == 0 {
 		_, err := dataStore.Exec(fmt.Sprintf(
-			"INSERT INTO %v (name, instructions, yield, prep_time, cook_time, description) VALUES (?, ?, ?, ?, ?, ?)",
+			"INSERT INTO %v (name, instructions, yield, prep_time, cook_time, description) VALUES (?, ?, ?, ?, ?, ?);",
 			table,
 		), r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description)
 
 		return err
 	} else {
 		_, err := dataStore.Exec(fmt.Sprintf(
-			"UPDATE %v SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ?",
+			"UPDATE %v SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ?;",
 			table,
 		), r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.Id)
 
