@@ -59,6 +59,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 	if rows, err := dataStore.Query(query, names...); err != nil {
 		return nil, err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			r := NewRecipe()
 			rows.Scan(&r.Id, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime)
@@ -134,6 +135,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	)); err != nil {
 		return nil, err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			r := NewRecipe()
 			rows.Scan(&r.Id, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime)
@@ -180,6 +182,7 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 	if rows, err := dataStore.Query(query, ids...); err != nil {
 		return nil, err
 	} else {
+		defer rows.Close()
 		for rows.Next() {
 			var (
 				rId     int
