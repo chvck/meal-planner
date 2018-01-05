@@ -3,7 +3,9 @@ package db
 import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
+	"fmt"
 )
 
 // SqlxAdapter is a data store adapter that persists to the Postgres database
@@ -17,6 +19,16 @@ type SqlxRows struct {
 
 type SqlxRow struct {
 	*sql.Row
+}
+
+// Initialize the adapter with a pre-connected database - primarily for testing
+func (p *SqlxAdapter) InitializeWithDb(db *sqlx.DB) error {
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("database connection does not work %v", err.Error())
+	}
+	p.db = db
+
+	return nil
 }
 
 // Initialize sets up the connection to the database

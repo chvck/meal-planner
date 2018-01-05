@@ -112,15 +112,16 @@ func TestAll(t *testing.T) {
 	allRows = append(allRows, query1Rows, query2Rows)
 
 	adapter := &RecipeTestAdapter{AllRows: allRows}
-	recipes, err := All(adapter)
+	recipesPtr, err := All(adapter)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, recipes)
-	assert.Equal(t, 1, len(*recipes))
-	//assert.Equal(t, 1, *recipes[0].Id)
-	//assert.Equal(t, 2, *recipes[1].Id)
+	assert.NotNil(t, recipesPtr)
+	recipes := *recipesPtr
+	assert.Equal(t, 1, len(recipes))
+	assert.Equal(t, 1, recipes[0].Id)
+	assert.Equal(t, 1, len(recipes[0].Ingredients))
+	assert.Equal(t, 1, recipes[0].Ingredients[0].Id)
 	assert.Equal(t, 2, len(adapter.queries))
-	assert.Equal(t, 2, len(adapter.bindVars))
 }
 
 //
