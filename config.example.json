@@ -1,0 +1,7 @@
+{
+  "dbString": "postgres://localhost:5432/meals",
+  "dbType": "postgres",
+  "httpPort": 3000,
+  "httpsPort": null,
+  "hostname": "localhost"
+}

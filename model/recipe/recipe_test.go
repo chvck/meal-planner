@@ -7,6 +7,7 @@ import (
 	"errors"
 	"database/sql"
 	"reflect"
+	"gopkg.in/guregu/null.v3"
 )
 
 type RecipeTestAdapter struct {
@@ -125,11 +126,11 @@ func TestOne(t *testing.T) {
 	r1 := recipe{
 		Id:           1,
 		Name:         "name1",
-		Description:  sql.NullString{String: "desc1"},
+		Description:  null.String{sql.NullString{String: "desc1"}},
 		Instructions: "inst1",
-		Yield:        sql.NullInt64{Int64: 1},
-		PrepTime:     sql.NullInt64{Int64: 30},
-		CookTime:     sql.NullInt64{Int64: 5},
+		Yield:        null.Int{sql.NullInt64{Int64: 1}},
+		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
+		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
 		Ingredients:  iCol,
 	}
 
@@ -167,21 +168,21 @@ func TestAll(t *testing.T) {
 	r1 := recipe{
 		Id:           1,
 		Name:         "name1",
-		Description:  sql.NullString{String: "desc1"},
+		Description:  null.String{sql.NullString{String: "desc1"}},
 		Instructions: "inst1",
-		Yield:        sql.NullInt64{Int64: 1},
-		PrepTime:     sql.NullInt64{Int64: 30},
-		CookTime:     sql.NullInt64{Int64: 5},
+		Yield:        null.Int{sql.NullInt64{Int64: 1}},
+		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
+		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
 		Ingredients:  iCol,
 	}
 	r2 := recipe{
 		Id:           2,
 		Name:         "name2",
-		Description:  sql.NullString{String: "desc2"},
+		Description:  null.String{sql.NullString{String: "desc2"}},
 		Instructions: "inst2",
-		Yield:        sql.NullInt64{Int64: 1},
-		PrepTime:     sql.NullInt64{Int64: 30},
-		CookTime:     sql.NullInt64{Int64: 5},
+		Yield:        null.Int{sql.NullInt64{Int64: 1}},
+		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
+		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
 		Ingredients:  iCol,
 	}
 

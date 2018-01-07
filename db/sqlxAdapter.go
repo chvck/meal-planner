@@ -6,6 +6,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 // SqlxAdapter is a data store adapter that persists to the Postgres database
@@ -43,8 +44,10 @@ func (p *SqlxAdapter) Initialize(dbType string, connectionString string) error {
 
 // Query performs the specified query and populates the array with retrieved data
 func (p SqlxAdapter) Query(baseQuery string, bindVars ...interface{}) (Rows, error) {
-	query := p.db.Rebind(baseQuery)
-	if rows, err := p.db.Query(query, bindVars...); err != nil {
+	if strings.Contains(baseQuery, "?") {
+		baseQuery = p.db.Rebind(baseQuery)
+	}
+	if rows, err := p.db.Query(baseQuery, bindVars...); err != nil {
 		return nil, err
 	} else {
 		return SqlxRows{rows}, nil

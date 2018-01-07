@@ -1,21 +1,22 @@
 package recipe
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/chvck/meal-planner/model"
 	"strings"
+	"gopkg.in/guregu/null.v3"
+	"sort"
 )
 
 // recipe is the struct representing a recipe
 type recipe struct {
-	Id           int            `db:"id"`
-	Name         string         `db:"name"`
-	Instructions string         `db:"instructions"`
-	Yield        sql.NullInt64  `db:"yield"`
-	PrepTime     sql.NullInt64  `db:"prep_time"`
-	CookTime     sql.NullInt64  `db:"cook_time"`
-	Description  sql.NullString `db:"description"`
+	Id           int         `db:"id"`
+	Name         string      `db:"name"`
+	Instructions string      `db:"instructions"`
+	Yield        null.Int    `db:"yield"`
+	PrepTime     null.Int    `db:"prep_time"`
+	CookTime     null.Int    `db:"cook_time"`
+	Description  null.String `db:"description"`
 	Ingredients  []ingredient
 }
 
@@ -31,7 +32,7 @@ func (i ingredient) String() string {
 }
 
 func NewRecipe() *recipe {
-	return &recipe{Id: -1}
+	return &recipe{Id: -1, Ingredients: []ingredient{}}
 }
 
 // Find executes a search for recipes using the where string built within the Finder
@@ -150,7 +151,6 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 		return &recipes, nil
 	}
 
-	recipes := make([]recipe, 0, len(m))
 	if ingredients, err := ingredientsByRecipe(dataStore, ids...); err != nil {
 		return nil, err
 	} else {
@@ -158,9 +158,15 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 			r := m[rId]
 
 			r.Ingredients = i
-			recipes = append(recipes, *r)
 		}
 	}
+	recipes := make([]recipe, 0, len(m))
+	for _, recipe := range m {
+		recipes = append(recipes, *recipe)
+	}
+	sort.SliceStable(recipes, func(i, j int) bool {
+		return recipes[i].Id < recipes[j].Id
+	})
 
 	return &recipes, nil
 }

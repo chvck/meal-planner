@@ -25,7 +25,7 @@ func setup() (*sql.DB, func(), error) {
 		return nil, nil, err
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "postgres", driver)
+	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "sqlite3", driver)
 
 	if err != nil {
 		return nil, nil, err
