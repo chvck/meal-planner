@@ -24,6 +24,11 @@ type mockRows struct {
 	i    int
 }
 
+type mockRow struct {
+	row  []interface{}
+	i    int
+}
+
 func (mr *mockRows) Next() bool {
 	if mr.i < len(mr.Rows) {
 		mr.row = mr.Rows[mr.i]
@@ -51,6 +56,20 @@ func (mr mockRows) Close() error {
 	return nil
 }
 
+
+func (mr *mockRow) Scan(dest ...interface{}) error {
+	if len(dest) != len(mr.row) {
+		return errors.New("incorrect number of arguments supplied to Scan")
+	}
+
+	for i, col := range mr.row {
+		rv := reflect.ValueOf(dest[i])
+		rv.Elem().Set(reflect.ValueOf(col))
+	}
+
+	return nil
+}
+
 func (r RecipeTestAdapter) Initialize(dbType string, connectionString string) error {
 	return nil
 }
@@ -66,47 +85,120 @@ func (r *RecipeTestAdapter) Query(baseQuery string, bindVars ...interface{}) (db
 }
 
 func (r *RecipeTestAdapter) QueryOne(baseQuery string, bindVars ...interface{}) db.Row {
-	//r.query = baseQuery
-	//r.bindVars = bindVars
-	//r.destTypeOk = false
-	//recipe, ok := dest.(*Recipe)
-	//if ok {
-	//	r.destTypeOk = true
-	//
-	//	recipe.Id = 1
-	//	recipe.Name = "test recipe"
-	//}
+	r.queries = append(r.queries, baseQuery)
+	r.bindVars = append(r.bindVars, bindVars)
 
-	return nil
+	return &mockRow{row: r.Row}
 }
 
 func (r RecipeTestAdapter) Exec(baseExec string, bindVars ...interface{}) (int, error) {
 	return 0, nil
 }
 
-//func TestOne(t *testing.T) {
-//	adapter := &RecipeTestAdapter{}
-//	recipe, err := One(adapter, 1)
-//
-//	assert.Nil(t, err)
-//	assert.NotNil(t, recipe)
-//	assert.Equal(t, 1, recipe.Id)
-//	assert.Equal(t, "SELECT * FROM recipe WHERE id = ?", adapter.query)
-//	assert.Equal(t, 1, len(adapter.bindVars))
-//	assert.Equal(t, 1, adapter.bindVars[0])
-//}
+func assertRecipe(t *testing.T, expected *recipe, actual *recipe) {
+	assert.Equal(t, expected.Id, actual.Id)
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.CookTime, actual.CookTime)
+	assert.Equal(t, expected.PrepTime, actual.PrepTime)
+	assert.Equal(t, expected.Yield, actual.Yield)
+	assert.Equal(t, expected.Description, actual.Description)
+	assert.Equal(t, expected.Instructions, actual.Instructions)
+	assert.Equal(t, expected.Ingredients, actual.Ingredients)
+}
 
-func TestAll(t *testing.T) {
-	var row1 []interface{}
-	var row2 []interface{}
-	row1 = append(row1, 1, "name1", "desc1", sql.NullString{String: "inst1"}, sql.NullInt64{Int64: 1}, sql.NullInt64{Int64: 1}, sql.NullInt64{Int64: 1})
-	row2 = append(row2, 1, 1, "ing1", "cup", 2)
+func TestNewRecipe(t *testing.T) {
+	r := NewRecipe()
+	assert.Equal(t, -1, r.Id)
+}
 
-	var query1Rows [][]interface{}
-	query1Rows = append(query1Rows, row1)
+func TestOne(t *testing.T) {
+	i1 := ingredient{
+		Id:       1,
+		Name:     "ing1",
+		Measure:  "meas1",
+		Quantity: 12,
+	}
+
+	var iCol []ingredient
+	iCol = append(iCol, i1)
+
+	r1 := recipe{
+		Id:           1,
+		Name:         "name1",
+		Description:  sql.NullString{String: "desc1"},
+		Instructions: "inst1",
+		Yield:        sql.NullInt64{Int64: 1},
+		PrepTime:     sql.NullInt64{Int64: 30},
+		CookTime:     sql.NullInt64{Int64: 5},
+		Ingredients:  iCol,
+	}
+
+	var rRow1 []interface{}
+	var iRow1 []interface{}
+	rRow1 = append(rRow1, r1.Id, r1.Name, r1.Instructions, r1.Description, r1.Yield, r1.PrepTime, r1.CookTime)
+	iRow1 = append(iRow1, r1.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
 
 	var query2Rows [][]interface{}
-	query2Rows = append(query2Rows, row2)
+	query2Rows = append(query2Rows, iRow1)
+
+	var allRows [][][]interface{}
+	allRows = append(allRows, query2Rows)
+
+	adapter := &RecipeTestAdapter{Row: rRow1, AllRows: allRows}
+	recipePtr, err := One(adapter, 1)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, recipePtr)
+	assertRecipe(t, &r1, recipePtr)
+	assert.Equal(t, 2, len(adapter.queries))
+}
+
+func TestAll(t *testing.T) {
+	i1 := ingredient{
+		Id:       1,
+		Name:     "ing1",
+		Measure:  "meas1",
+		Quantity: 12,
+	}
+
+	var iCol []ingredient
+	iCol = append(iCol, i1)
+
+	r1 := recipe{
+		Id:           1,
+		Name:         "name1",
+		Description:  sql.NullString{String: "desc1"},
+		Instructions: "inst1",
+		Yield:        sql.NullInt64{Int64: 1},
+		PrepTime:     sql.NullInt64{Int64: 30},
+		CookTime:     sql.NullInt64{Int64: 5},
+		Ingredients:  iCol,
+	}
+	r2 := recipe{
+		Id:           2,
+		Name:         "name2",
+		Description:  sql.NullString{String: "desc2"},
+		Instructions: "inst2",
+		Yield:        sql.NullInt64{Int64: 1},
+		PrepTime:     sql.NullInt64{Int64: 30},
+		CookTime:     sql.NullInt64{Int64: 5},
+		Ingredients:  iCol,
+	}
+
+	var rRow1 []interface{}
+	var rRow2 []interface{}
+	var iRow1 []interface{}
+	var iRow2 []interface{}
+	rRow1 = append(rRow1, r1.Id, r1.Name, r1.Instructions, r1.Description, r1.Yield, r1.PrepTime, r1.CookTime)
+	rRow2 = append(rRow2, r2.Id, r2.Name, r2.Instructions, r2.Description, r2.Yield, r2.PrepTime, r2.CookTime)
+	iRow1 = append(iRow1, r1.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
+	iRow2 = append(iRow2, r2.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
+
+	var query1Rows [][]interface{}
+	query1Rows = append(query1Rows, rRow1, rRow2)
+
+	var query2Rows [][]interface{}
+	query2Rows = append(query2Rows, iRow1, iRow2)
 
 	var allRows [][][]interface{}
 	allRows = append(allRows, query1Rows, query2Rows)
@@ -117,71 +209,8 @@ func TestAll(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, recipesPtr)
 	recipes := *recipesPtr
-	assert.Equal(t, 1, len(recipes))
-	assert.Equal(t, 1, recipes[0].Id)
-	assert.Equal(t, 1, len(recipes[0].Ingredients))
-	assert.Equal(t, 1, recipes[0].Ingredients[0].Id)
+	assert.Equal(t, 2, len(recipes))
+	assertRecipe(t, &r1, &recipes[0])
+	assertRecipe(t, &r2, &recipes[1])
 	assert.Equal(t, 2, len(adapter.queries))
 }
-
-//
-//func TestAllWithLimit(t *testing.T) {
-//	adapter := &RecipeTestAdapter{}
-//	recipes, err := AllWithLimit(adapter, 10, 5)
-//
-//	assert.Nil(t, err)
-//	assert.NotNil(t, recipes)
-//	assert.Equal(t, 2, len(recipes))
-//	assert.Equal(t, 1, recipes[0].Id)
-//	assert.Equal(t, 2, recipes[1].Id)
-//	assert.Equal(t, "SELECT * FROM recipe LIMIT 10 OFFSET 5", adapter.query)
-//	assert.Equal(t, 0, len(adapter.bindVars))
-//	assert.True(t, adapter.destTypeOk)
-//}
-//
-//func TestFind(t *testing.T) {
-//	adapter := &RecipeTestAdapter{}
-//	rf := Finder{}
-//	recipes, err := rf.Find(adapter)
-//
-//	assert.Nil(t, err)
-//	assert.NotNil(t, recipes)
-//	assert.Equal(t, 2, len(recipes))
-//	assert.Equal(t, 1, recipes[0].Id)
-//	assert.Equal(t, 2, recipes[1].Id)
-//	assert.Equal(t, "SELECT * FROM recipe ", adapter.query)
-//	assert.Equal(t, 0, len(adapter.bindVars))
-//	assert.True(t, adapter.destTypeOk)
-//}
-//
-//func TestFind_WithWhere(t *testing.T) {
-//	adapter := &RecipeTestAdapter{}
-//	rf := Finder{}
-//	rf.Where("field", "=", "value")
-//	recipes, err := rf.Find(adapter)
-//
-//	assert.Nil(t, err)
-//	assert.NotNil(t, recipes)
-//	assert.Equal(t, 2, len(recipes))
-//	assert.Equal(t, "SELECT * FROM recipe WHERE field = ?", adapter.query)
-//	assert.Equal(t, 1, len(adapter.bindVars))
-//	assert.Equal(t, "value", adapter.bindVars[0])
-//	assert.True(t, adapter.destTypeOk)
-//}
-//
-//func TestFind_WithWhereAndOr(t *testing.T) {
-//	adapter := &RecipeTestAdapter{}
-//	rf := Finder{}
-//	rf.Where("field", "=", "value").AndWhere("field2", "=", "value2").OrWhere("field3", "=", "value3")
-//	recipes, err := rf.Find(adapter)
-//
-//	assert.Nil(t, err)
-//	assert.NotNil(t, recipes)
-//	assert.Equal(t, 2, len(recipes))
-//	assert.Equal(t, "SELECT * FROM recipe WHERE field = ? AND field2 = ? OR field3 = ?", adapter.query)
-//	assert.Equal(t, 3, len(adapter.bindVars))
-//	assert.Equal(t, "value", adapter.bindVars[0])
-//	assert.Equal(t, "value2", adapter.bindVars[1])
-//	assert.Equal(t, "value3", adapter.bindVars[2])
-//	assert.True(t, adapter.destTypeOk)
-//}
