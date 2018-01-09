@@ -96,17 +96,6 @@ func (r RecipeTestAdapter) Exec(baseExec string, bindVars ...interface{}) (int, 
 	return 0, nil
 }
 
-func assertRecipe(t *testing.T, expected *recipe, actual *recipe) {
-	assert.Equal(t, expected.Id, actual.Id)
-	assert.Equal(t, expected.Name, actual.Name)
-	assert.Equal(t, expected.CookTime, actual.CookTime)
-	assert.Equal(t, expected.PrepTime, actual.PrepTime)
-	assert.Equal(t, expected.Yield, actual.Yield)
-	assert.Equal(t, expected.Description, actual.Description)
-	assert.Equal(t, expected.Instructions, actual.Instructions)
-	assert.Equal(t, expected.Ingredients, actual.Ingredients)
-}
-
 func TestNewRecipe(t *testing.T) {
 	r := NewRecipe()
 	assert.Equal(t, -1, r.Id)
@@ -116,7 +105,7 @@ func TestOne(t *testing.T) {
 	i1 := ingredient{
 		Id:       1,
 		Name:     "ing1",
-		Measure:  "meas1",
+		Measure:  null.StringFrom("meas1"),
 		Quantity: 12,
 	}
 
@@ -158,7 +147,7 @@ func TestAll(t *testing.T) {
 	i1 := ingredient{
 		Id:       1,
 		Name:     "ing1",
-		Measure:  "meas1",
+		Measure:  null.StringFrom("meas1"),
 		Quantity: 12,
 	}
 

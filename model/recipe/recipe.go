@@ -23,7 +23,7 @@ type recipe struct {
 type ingredient struct {
 	Id       int    `db:"id"`
 	Name     string `db:"name"`
-	Measure  string
+	Measure  null.String
 	Quantity int
 }
 
@@ -195,7 +195,7 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 				rId     int
 				ingId   int
 				ingName string
-				mName   string
+				mName   null.String
 				q       int
 			)
 			if err := rows.Scan(&rId, &ingId, &ingName, &mName, &q); err != nil {

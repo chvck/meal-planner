@@ -59,10 +59,11 @@ func TestIntegrationOne(t *testing.T) {
 		return
 	}
 
-	ing1 := ingredient{Name: "Chicken breast", Measure: "", Quantity: 2}
-	ing2 := ingredient{Name: "Paprika", Measure: "tsp", Quantity: 1}
+	ing1 := ingredient{Id: 1, Name: "Chicken breast", Measure: null.String{}, Quantity: 2}
+	ing2 := ingredient{Id: 2, Name: "Paprika", Measure: null.StringFrom("tsp"), Quantity: 1}
 
 	expected := recipe{
+		Id:           1,
 		Name:         "Chicken curry",
 		Description:  null.StringFrom("A tasty chicken curry"),
 		Instructions: "Cook it real good",
@@ -76,7 +77,7 @@ func TestIntegrationOne(t *testing.T) {
     VALUES (1, 'user', '"user@email.com', 'password', 'salt', 'algo', 12, 0, 0)`)
 
 	openDb.Exec(`INSERT INTO recipe (id, name, instructions, yield, prep_time, cook_time, description, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		1,
+		expected.Id,
 		expected.Name,
 		expected.Instructions,
 		expected.Yield,
@@ -86,18 +87,18 @@ func TestIntegrationOne(t *testing.T) {
 		1,
 	)
 
-	openDb.Exec(`INSERT INTO ingredient (id, name) VALUES (?, ?)`, 1, ing1.Name)
-	openDb.Exec(`INSERT INTO ingredient (id, name) VALUES (?, ?)`, 2, ing2.Name)
+	openDb.Exec(`INSERT INTO ingredient (id, name) VALUES (?, ?)`, ing1.Id, ing1.Name)
+	openDb.Exec(`INSERT INTO ingredient (id, name) VALUES (?, ?)`, ing2.Id, ing2.Name)
 
 	openDb.Exec(`INSERT INTO recipe_to_ingredient (recipe_id, ingredient_id, measure, quantity) VALUES (?, ?, ?, ?)`,
-		1,
-		1,
-		"",
+		expected.Id,
+		ing1.Id,
+		ing1.Measure,
 		ing1.Quantity,
 	)
 	openDb.Exec(`INSERT INTO recipe_to_ingredient (recipe_id, ingredient_id, measure, quantity) VALUES (?, ?, ?, ?)`,
-		1,
-		2,
+		expected.Id,
+		ing2.Id,
 		ing2.Measure,
 		ing2.Quantity,
 	)
