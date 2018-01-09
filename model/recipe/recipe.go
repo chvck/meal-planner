@@ -92,7 +92,6 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 
 // One retrieves a single recipe by id
 func One(dataStore model.IDataStoreAdapter, id int) (*recipe, error) {
-	r := NewRecipe()
 	row := dataStore.QueryOne(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
 		FROM recipe r
@@ -100,6 +99,7 @@ func One(dataStore model.IDataStoreAdapter, id int) (*recipe, error) {
 		id,
 	)
 
+	r := NewRecipe()
 	if err := row.Scan(&r.Id, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime); err != nil {
 		return nil, err
 	}
@@ -110,7 +110,9 @@ func One(dataStore model.IDataStoreAdapter, id int) (*recipe, error) {
 	if ingredients, err := ingredientsByRecipe(dataStore, ids...); err != nil {
 		return nil, err
 	} else {
-		r.Ingredients = ingredients[r.Id]
+		if ingredients[r.Id] != nil {
+			r.Ingredients = ingredients[r.Id]
+		}
 	}
 
 	return r, nil
@@ -176,10 +178,9 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 
 	query := fmt.Sprintf(
-		`SELECT ri.recipe_id, i.id, i.name, m.name, quantity
+		`SELECT ri.recipe_id, i.id, i.name, ri.measure, ri.quantity
 		FROM recipe_to_ingredient ri
 		JOIN ingredient i on i.id = ri.ingredient_id
-		JOIN measure m on m.id = ri.measure_id
 		WHERE ri.recipe_id IN (%v)
 		ORDER BY ri.recipe_id;`,
 		in,
