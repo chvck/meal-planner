@@ -7,6 +7,7 @@ import (
 	"errors"
 	"gopkg.in/guregu/null.v3"
 	"golang.org/x/crypto/bcrypt"
+	"log"
 )
 
 type User struct {
@@ -78,6 +79,10 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 			rows.Scan(&u.Id, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin)
 
 			users = append(users, u)
+		}
+
+		if err = rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 

@@ -45,6 +45,10 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 
 			ingredients = append(ingredients, i)
 		}
+
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &ingredients, nil

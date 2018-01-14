@@ -57,6 +57,10 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 			m[r.Id] = r
 			ids = append(ids, r.Id)
 		}
+
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	if len(m) == 0 {
@@ -135,6 +139,10 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 			m[r.Id] = r
 			ids = append(ids, r.Id)
 		}
+
+		if err = rows.Err(); err != nil {
+			return nil, err
+		}
 	}
 
 	if len(m) == 0 {
@@ -194,6 +202,10 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 			i := ingredient.Ingredient{Id: ingId, RecipeId: rId, Name: ingName, Measure: mName, Quantity: q}
 			arr = append(arr, i)
 			m[rId] = arr
+		}
+
+		if err = rows.Err(); err != nil {
+			return nil, err
 		}
 	}
 
