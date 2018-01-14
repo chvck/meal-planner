@@ -4,26 +4,19 @@ import (
 	"gopkg.in/guregu/null.v3"
 	"github.com/chvck/meal-planner/model"
 	"fmt"
+	"github.com/chvck/meal-planner/db"
 )
 
 type Ingredient struct {
 	Id       int    `db:"id"`
-	Name     string `db:"name"`
-}
-
-type IngredientWithProps struct {
-	Id       int    `db:"id"`
+	RecipeId int    `db:"recipe_id"`
 	Name     string `db:"name"`
 	Measure  null.String
 	Quantity int
 }
 
-func (i IngredientWithProps) String() string {
+func (i Ingredient) String() string {
 	return fmt.Sprintf("%v %v %v", i.Quantity, i.Measure, i.Name)
-}
-
-func NewIngredient() *Ingredient {
-	return &Ingredient{Id: -1}
 }
 
 // All retrieves all ingredients
@@ -36,9 +29,9 @@ func All(dataStore model.IDataStoreAdapter) (*[]Ingredient, error) {
 func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int) (*[]Ingredient, error) {
 	var ingredients []Ingredient
 	if rows, err := dataStore.Query(fmt.Sprintf(
-		`SELECT id, name
+		`SELECT id, recipe_id, name, measure, quantity
 		FROM ingredient
-		ORDER BY id
+		ORDER BY name
 		LIMIT %v OFFSET %v;`,
 		limit,
 		offset,
@@ -47,12 +40,34 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	} else {
 		defer rows.Close()
 		for rows.Next() {
-			i := NewIngredient()
-			rows.Scan(&i.Id, &i.Name)
+			i := Ingredient{}
+			rows.Scan(&i.Id, &i.RecipeId, &i.Name, &i.Measure, &i.Quantity)
 
-			ingredients = append(ingredients, *i)
+			ingredients = append(ingredients, i)
 		}
 	}
 
 	return &ingredients, nil
+}
+
+// Create creates a list of Ingredients
+func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeId int) error {
+	for _, i := range ingredients {
+		if _, err := tx.Exec(
+			"INSERT INTO ingredient (recipe_id, name, measure, quantity) VALUES (?, ?, ?, ?);",
+			recipeId, i.Name, i.Measure, i.Quantity); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete all of the Ingredients for a Recipe
+func DeleteAllByRecipe(tx db.Transaction, recipeId int) error {
+	_, err := tx.Exec(
+		"DELETE FROM ingredient WHERE recipe_id = ?;",
+		recipeId)
+
+	return err
 }

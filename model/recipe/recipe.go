@@ -18,11 +18,11 @@ type Recipe struct {
 	PrepTime     null.Int    `db:"prep_time"`
 	CookTime     null.Int    `db:"cook_time"`
 	Description  null.String `db:"description"`
-	Ingredients  []ingredient.IngredientWithProps
+	Ingredients  []ingredient.Ingredient
 }
 
 func NewRecipe() *Recipe {
-	return &Recipe{Id: -1, Ingredients: []ingredient.IngredientWithProps{}}
+	return &Recipe{Id: -1, Ingredients: []ingredient.Ingredient{}}
 }
 
 // Find executes a search for recipes using the where string built within the Finder
@@ -40,9 +40,8 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 	}
 	query := fmt.Sprintf(
 		`SELECT DISTINCT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
-		FROM ingredient.IngredientWithProps i
-		JOIN recipe_to_ingredient ri ON ri.ingredient_id = i.id
-		JOIN Recipe r ON r.id = ri.recipe_id
+		FROM ingredient i
+		JOIN recipe r ON r.id = i.recipe_id
 		WHERE %v;`,
 		where,
 	)
@@ -84,7 +83,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 func One(dataStore model.IDataStoreAdapter, id int) (*Recipe, error) {
 	row := dataStore.QueryOne(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
-		FROM Recipe r
+		FROM recipe r
 		WHERE r.id = ?;`,
 		id,
 	)
@@ -120,7 +119,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	var ids []interface{}
 	if rows, err := dataStore.Query(fmt.Sprintf(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
-		FROM Recipe r
+		FROM recipe r
 		ORDER BY r.id
 		LIMIT %v OFFSET %v;`,
 		limit,
@@ -163,16 +162,15 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	return &recipes, nil
 }
 
-func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]ingredient.IngredientWithProps, error) {
-	m := make(map[int][]ingredient.IngredientWithProps)
+func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]ingredient.Ingredient, error) {
+	m := make(map[int][]ingredient.Ingredient)
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 
 	query := fmt.Sprintf(
-		`SELECT ri.recipe_id, i.id, i.name, ri.measure, ri.quantity
-		FROM recipe_to_ingredient ri
-		JOIN ingredient.IngredientWithProps i on i.id = ri.ingredient_id
-		WHERE ri.recipe_id IN (%v)
-		ORDER BY ri.recipe_id;`,
+		`SELECT id, recipe_id, name, measure, quantity
+		FROM ingredient
+		WHERE recipe_id IN (%v)
+		ORDER BY recipe_id;`,
 		in,
 	)
 
@@ -188,12 +186,12 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 				mName   null.String
 				q       int
 			)
-			if err := rows.Scan(&rId, &ingId, &ingName, &mName, &q); err != nil {
+			if err := rows.Scan(&ingId, &rId, &ingName, &mName, &q); err != nil {
 				return nil, err
 			}
 
 			arr := m[rId]
-			i := ingredient.IngredientWithProps{Id: ingId, Name: ingName, Measure: mName, Quantity: q}
+			i := ingredient.Ingredient{Id: ingId, RecipeId: rId, Name: ingName, Measure: mName, Quantity: q}
 			arr = append(arr, i)
 			m[rId] = arr
 		}
@@ -202,20 +200,68 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 	return m, nil
 }
 
-// Save persists the specific Recipe
-// TODO: Consider adding a Save function to the IDataStoreAdapter which uses reflection to accept an interface and then iterate over fields for updates/saves
-func Save(dataStore model.IDataStoreAdapter, r Recipe) error {
-	if r.Id == 0 {
-		_, err := dataStore.Exec(
-			"INSERT INTO Recipe (name, instructions, yield, prep_time, cook_time, description) VALUES (?, ?, ?, ?, ?, ?);",
-			r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description)
-		return err
-	} else {
-		_, err := dataStore.Exec(
-			"UPDATE name SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ?;",
-			r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.Id)
-
+// Create creates the specific Recipe
+func Create(dataStore model.IDataStoreAdapter, r Recipe) error {
+	tx, err := dataStore.NewTransaction()
+	if err != nil {
 		return err
 	}
+
+	row := tx.QueryOne(
+		"INSERT INTO recipe (name, instructions, yield, prep_time, cook_time, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id;",
+		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description)
+
+	var recipeId int
+	if err = row.Scan(&recipeId); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ingredient.CreateMany(tx, r.Ingredients, r.Id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Update updates the specific Recipe
+func Update(dataStore model.IDataStoreAdapter, r Recipe) error {
+	tx, err := dataStore.NewTransaction()
+	if err != nil {
+		return err
+	}
+
+	if _, err = tx.Exec(
+		"UPDATE recipe SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ?;",
+		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.Id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// This isn't exactly efficient but ok for now
+	if err := ingredient.DeleteAllByRecipe(tx, r.Id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := ingredient.CreateMany(tx, r.Ingredients, r.Id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+	return err
 
 }

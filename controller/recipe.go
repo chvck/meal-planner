@@ -2,13 +2,13 @@ package controller
 
 import (
 	"net/http"
-	"fmt"
 	"github.com/chvck/meal-planner/context"
 	"github.com/chvck/meal-planner/model/recipe"
 	"encoding/json"
 	"log"
 	"github.com/gorilla/mux"
 	"strconv"
+	"io/ioutil"
 )
 
 func RecipeIndex(w http.ResponseWriter, r *http.Request) {
@@ -20,13 +20,7 @@ func RecipeIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	js, err := json.Marshal(recipes)
-	if err != nil {
-		http.Error(w, "Could not retrieve recipes", http.StatusInternalServerError)
-		return
-	}
-
-	fmt.Fprintf(w, string(js))
+	JsonResponse(recipes, w)
 }
 
 func RecipeById(w http.ResponseWriter, r *http.Request) {
@@ -46,11 +40,29 @@ func RecipeById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	js, err := json.Marshal(recipes)
+	JsonResponse(recipes, w)
+}
+
+func RecipeCreate(w http.ResponseWriter, r *http.Request) {
+	db := context.Database()
+	var re recipe.Recipe
+	if body, err := ioutil.ReadAll(r.Body); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		return
+	} else {
+		if err := json.Unmarshal(body, &re); err != nil {
+			log.Println(err.Error())
+			http.Error(w, "Invalid recipe", http.StatusBadRequest)
+			return
+		}
+	}
+
+	err := recipe.Create(db, re)
 	if err != nil {
-		http.Error(w, "Could not retrieve recipe", http.StatusInternalServerError)
+		log.Println(err.Error())
+		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Fprintf(w, string(js))
 }

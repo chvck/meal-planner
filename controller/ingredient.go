@@ -14,13 +14,13 @@ func IngredientIndex(w http.ResponseWriter, r *http.Request) {
 	ingredients, err := ingredient.All(db)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not retrieve recipes", http.StatusNotFound)
+		http.Error(w, "Could not retrieve ingredients", http.StatusNotFound)
 		return
 	}
 
 	js, err := json.Marshal(ingredients)
 	if err != nil {
-		http.Error(w, "Could not retrieve recipes", http.StatusInternalServerError)
+		http.Error(w, "Could not retrieve ingredients", http.StatusInternalServerError)
 		return
 	}
 

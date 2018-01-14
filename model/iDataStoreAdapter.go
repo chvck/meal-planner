@@ -10,4 +10,5 @@ type IDataStoreAdapter interface {
 	Query(baseQuery string, bindVars ...interface{}) (db.Rows, error)
 	QueryOne(baseQuery string, bindVars ...interface{}) db.Row
 	Exec(baseExec string, bindVars ...interface{}) (int, error)
+	NewTransaction() (db.Transaction, error)
 }
