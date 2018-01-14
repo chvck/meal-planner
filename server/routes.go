@@ -9,6 +9,7 @@ func routes() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/recipe/", controller.RecipeIndex)
+	router.HandleFunc("/recipe/{id}", controller.RecipeById)
 
 	return router
 }
