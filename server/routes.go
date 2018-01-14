@@ -11,5 +11,7 @@ func routes() *mux.Router {
 	router.HandleFunc("/recipe/", controller.RecipeIndex)
 	router.HandleFunc("/recipe/{id}", controller.RecipeById)
 
+	router.HandleFunc("/ingredient/", controller.IngredientIndex)
+
 	return router
 }

@@ -102,14 +102,14 @@ func TestNewRecipe(t *testing.T) {
 }
 
 func TestOne(t *testing.T) {
-	i1 := ingredient{
+	i1 := ingredientWithProps{
 		Id:       1,
 		Name:     "ing1",
 		Measure:  null.StringFrom("meas1"),
 		Quantity: 12,
 	}
 
-	var iCol []ingredient
+	var iCol []ingredientWithProps
 	iCol = append(iCol, i1)
 
 	r1 := recipe{
@@ -144,14 +144,14 @@ func TestOne(t *testing.T) {
 }
 
 func TestAll(t *testing.T) {
-	i1 := ingredient{
+	i1 := ingredientWithProps{
 		Id:       1,
 		Name:     "ing1",
 		Measure:  null.StringFrom("meas1"),
 		Quantity: 12,
 	}
 
-	var iCol []ingredient
+	var iCol []ingredientWithProps
 	iCol = append(iCol, i1)
 
 	r1 := recipe{
