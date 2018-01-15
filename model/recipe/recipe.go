@@ -2,11 +2,12 @@ package recipe
 
 import (
 	"fmt"
-	"github.com/chvck/meal-planner/model"
-	"strings"
-	"gopkg.in/guregu/null.v3"
 	"sort"
+	"strings"
+
+	"github.com/chvck/meal-planner/model"
 	"github.com/chvck/meal-planner/model/ingredient"
+	"gopkg.in/guregu/null.v3"
 )
 
 // Recipe is the struct representing a Recipe
@@ -84,12 +85,13 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 }
 
 // One retrieves a single Recipe by id
-func One(dataStore model.IDataStoreAdapter, id int) (*Recipe, error) {
+func One(dataStore model.IDataStoreAdapter, id int, userId int) (*Recipe, error) {
 	row := dataStore.QueryOne(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
 		FROM recipe r
-		WHERE r.id = ?;`,
+		WHERE r.id = ? and r.user_id = ?;`,
 		id,
+		userId,
 	)
 
 	r := NewRecipe()
@@ -112,23 +114,24 @@ func One(dataStore model.IDataStoreAdapter, id int) (*Recipe, error) {
 }
 
 // All retrieves all recipes
-func All(dataStore model.IDataStoreAdapter) (*[]Recipe, error) {
-	return AllWithLimit(dataStore, "NULL", 0)
+func All(dataStore model.IDataStoreAdapter, userId int) (*[]Recipe, error) {
+	return AllWithLimit(dataStore, "NULL", 0, userId)
 }
 
 // AllWithLimit retrieves x recipes starting from an offset
 // limit is expected to a positive int or string NULL (for no limit)
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int) (*[]Recipe, error) {
+func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int, userId int) (*[]Recipe, error) {
 	m := make(map[int]*Recipe)
 	var ids []interface{}
 	if rows, err := dataStore.Query(fmt.Sprintf(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
 		FROM recipe r
+		WHERE user_id = ?
 		ORDER BY r.id
 		LIMIT %v OFFSET %v;`,
 		limit,
 		offset,
-	)); err != nil {
+	), userId); err != nil {
 		return nil, err
 	} else {
 		defer rows.Close()
@@ -213,15 +216,15 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 }
 
 // Create creates the specific Recipe
-func Create(dataStore model.IDataStoreAdapter, r Recipe) error {
+func Create(dataStore model.IDataStoreAdapter, r Recipe, userId int) error {
 	tx, err := dataStore.NewTransaction()
 	if err != nil {
 		return err
 	}
 
 	row := tx.QueryOne(
-		"INSERT INTO recipe (name, instructions, yield, prep_time, cook_time, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id;",
-		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description)
+		"INSERT INTO recipe (name, instructions, yield, prep_time, cook_time, description, user_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;",
+		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, userId)
 
 	var recipeId int
 	if err = row.Scan(&recipeId); err != nil {
@@ -243,15 +246,15 @@ func Create(dataStore model.IDataStoreAdapter, r Recipe) error {
 }
 
 // Update updates the specific Recipe
-func Update(dataStore model.IDataStoreAdapter, r Recipe) error {
+func Update(dataStore model.IDataStoreAdapter, r Recipe, userId int) error {
 	tx, err := dataStore.NewTransaction()
 	if err != nil {
 		return err
 	}
 
 	if _, err = tx.Exec(
-		"UPDATE recipe SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ?;",
-		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.Id); err != nil {
+		"UPDATE recipe SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ? and user_id = ?;",
+		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.Id, userId); err != nil {
 		tx.Rollback()
 		return err
 	}

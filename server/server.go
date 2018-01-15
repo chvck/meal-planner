@@ -2,10 +2,11 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/context"
-	"net/http"
+	"github.com/chvck/meal-planner/store"
 )
 
 func Run(cfg *config.Info) error {
@@ -16,7 +17,7 @@ func Run(cfg *config.Info) error {
 		return err
 	}
 
-	context.StoreDb(database)
+	store.StoreDb(database)
 
 	address := fmt.Sprintf("%v:%v", cfg.Hostname, cfg.HttpPort)
 	r := routes()

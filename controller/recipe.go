@@ -1,31 +1,36 @@
 package controller
 
 import (
-	"net/http"
-	"github.com/chvck/meal-planner/context"
-	"github.com/chvck/meal-planner/model/recipe"
 	"encoding/json"
-	"log"
-	"github.com/gorilla/mux"
-	"strconv"
 	"io/ioutil"
+	"log"
+	"net/http"
+	"strconv"
+
+	"github.com/chvck/meal-planner/model/recipe"
+	"github.com/chvck/meal-planner/model/user"
+	"github.com/chvck/meal-planner/store"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 )
 
 func RecipeIndex(w http.ResponseWriter, r *http.Request) {
-	db := context.Database()
-	recipes, err := recipe.All(db)
+	db := store.Database()
+	u := context.Get(r, "user").(user.User)
+	recipes, err := recipe.All(db, u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipes", http.StatusNotFound)
 		return
 	}
 
-	JsonResponse(recipes, w)
+	JsonResponse(*recipes, w)
 }
 
 func RecipeById(w http.ResponseWriter, r *http.Request) {
-	db := context.Database()
+	db := store.Database()
 	vars := mux.Vars(r)
+	u := context.Get(r, "user").(user.User)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
@@ -33,7 +38,7 @@ func RecipeById(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipes, err := recipe.One(db, id)
+	recipes, err := recipe.One(db, id, u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipe", http.StatusNotFound)
@@ -44,7 +49,7 @@ func RecipeById(w http.ResponseWriter, r *http.Request) {
 }
 
 func RecipeCreate(w http.ResponseWriter, r *http.Request) {
-	db := context.Database()
+	db := store.Database()
 	var re recipe.Recipe
 	if body, err := ioutil.ReadAll(r.Body); err != nil {
 		log.Println(err.Error())
@@ -58,7 +63,8 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := recipe.Create(db, re)
+	u := context.Get(r, "user").(user.User)
+	err := recipe.Create(db, re, u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)

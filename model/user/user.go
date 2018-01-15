@@ -1,13 +1,13 @@
 package user
 
 import (
-	"fmt"
-	"github.com/chvck/meal-planner/model"
-	"time"
 	"errors"
-	"gopkg.in/guregu/null.v3"
+	"fmt"
+	"time"
+
+	"github.com/chvck/meal-planner/model"
 	"golang.org/x/crypto/bcrypt"
-	"log"
+	"gopkg.in/guregu/null.v3"
 )
 
 type User struct {
@@ -23,19 +23,6 @@ const (
 	saltSize   = 64
 	iterations = 1e4
 )
-
-//type UserWith struct {
-//	Id         int    `db:"id"`
-//	Username   string `db:"username"`
-//	Email      string `db:"email"`
-//	Password   string `db:"password"`
-//	Salt       string `db:"string"`
-//	Algorithm  string `db:"algorithm"`
-//	Iterations string `db:"iterations"`
-//	CreatedAt  string `db:"created_at"`
-//	UpdatedAt  string `db:"updated_at"`
-//	LastLogin  string `db:"last_login"`
-//}
 
 // One retrieves a single User by id
 func One(dataStore model.IDataStoreAdapter, id int) (*User, error) {

@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"net/http"
-	"github.com/chvck/meal-planner/model/user"
-	"github.com/chvck/meal-planner/context"
+	"encoding/json"
 	"io/ioutil"
 	"log"
-	"encoding/json"
+	"net/http"
+
+	"github.com/chvck/meal-planner/model/user"
+	"github.com/chvck/meal-planner/store"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -32,7 +33,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := context.Database()
+	db := store.Database()
 	u := user.ValidatePassword(db, creds.Username, []byte(creds.Password))
 	if u == nil {
 		http.Error(w, "Invalid login credentials", http.StatusUnauthorized)
@@ -50,7 +51,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func UserCreate(w http.ResponseWriter, r *http.Request) {
-	db := context.Database()
+	db := store.Database()
 	var u userWithPassword
 
 	if body, err := ioutil.ReadAll(r.Body); err != nil {
@@ -75,8 +76,10 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 
 func createToken(user *user.User) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"id": user.Id,
+		"username":  user.Username,
+		"email":     user.Email,
+		"id":        user.Id,
+		"lastLogin": user.LastLogin,
 	})
 	tokenString, err := token.SignedString([]byte("secret"))
 	if err != nil {

@@ -1,13 +1,16 @@
 package server
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/chvck/meal-planner/controller"
-	"github.com/dgrijalva/jwt-go"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
-	"encoding/json"
+
+	"github.com/chvck/meal-planner/controller"
+	"github.com/chvck/meal-planner/model/user"
+	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/context"
+	"github.com/gorilla/mux"
 )
 
 type Exception struct {
@@ -17,7 +20,7 @@ type Exception struct {
 func routes() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/recipe/", controller.RecipeIndex).Methods("GET")
+	router.HandleFunc("/recipe/", ValidateMiddleware(controller.RecipeIndex)).Methods("GET")
 	router.HandleFunc("/recipe/{id}", controller.RecipeById).Methods("GET")
 	router.HandleFunc("/recipe/", controller.RecipeCreate).Methods("POST")
 
@@ -45,7 +48,9 @@ func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
-			if token.Valid {
+			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				u := user.User{Id: int(claims["id"].(float64)), Username: claims["username"].(string)}
+				context.Set(req, "user", u)
 				next(w, req)
 			} else {
 				json.NewEncoder(w).Encode(Exception{Message: "Invalid authorization token"})
@@ -54,7 +59,7 @@ func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-func parseToken(token *jwt.Token) (interface{}, error){
+func parseToken(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("there was an error")
 	}

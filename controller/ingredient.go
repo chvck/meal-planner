@@ -1,16 +1,17 @@
 package controller
 
 import (
-	"log"
 	"encoding/json"
 	"fmt"
-	"github.com/chvck/meal-planner/context"
+	"log"
 	"net/http"
+
 	"github.com/chvck/meal-planner/model/ingredient"
+	"github.com/chvck/meal-planner/store"
 )
 
 func IngredientIndex(w http.ResponseWriter, r *http.Request) {
-	db := context.Database()
+	db := store.Database()
 	ingredients, err := ingredient.All(db)
 	if err != nil {
 		log.Println(err.Error())

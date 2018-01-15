@@ -1,4 +1,4 @@
-package context
+package store
 
 import "github.com/chvck/meal-planner/model"
 
