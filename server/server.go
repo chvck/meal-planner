@@ -9,6 +9,7 @@ import (
 	"github.com/chvck/meal-planner/store"
 )
 
+// Run is the entry point for running the server
 func Run(cfg *config.Info) error {
 	database := &db.SqlxAdapter{}
 	err := database.Initialize(cfg.DbType, cfg.DbString)
@@ -19,7 +20,7 @@ func Run(cfg *config.Info) error {
 
 	store.StoreDb(database)
 
-	address := fmt.Sprintf("%v:%v", cfg.Hostname, cfg.HttpPort)
+	address := fmt.Sprintf("%v:%v", cfg.Hostname, cfg.HTTPPort)
 	r := routes()
 
 	return http.ListenAndServe(address, r)

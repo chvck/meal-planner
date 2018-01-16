@@ -10,8 +10,9 @@ import (
 	"gopkg.in/guregu/null.v3"
 )
 
+// User is the model for the user table
 type User struct {
-	Id        int      `db:"id" json:"id"`
+	ID        int      `db:"id" json:"id"`
 	Username  string   `db:"username" json:"username"`
 	Email     string   `db:"email" json:"email"`
 	CreatedAt int      `db:"created_at" json:"createdAt"`
@@ -34,7 +35,7 @@ func One(dataStore model.IDataStoreAdapter, id int) (*User, error) {
 	)
 
 	u := User{}
-	if err := row.Scan(&u.Id, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +64,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 		defer rows.Close()
 		for rows.Next() {
 			u := User{}
-			rows.Scan(&u.Id, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin)
+			rows.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin)
 
 			users = append(users, u)
 		}
@@ -94,14 +95,11 @@ func Create(dataStore model.IDataStoreAdapter, u User, password []byte) error {
 		u.Username, u.Email, string(hash), now, now,
 	)
 
-	var userId int
-	if err = row.Scan(&userId); err != nil {
-		return err
-	}
-
-	return nil
+	var userID int
+	return row.Scan(&userID)
 }
 
+// ValidatePassword verifies a password for a user
 func ValidatePassword(dataStore model.IDataStoreAdapter, username string, pw []byte) *User {
 	row := dataStore.QueryOne(
 		`SELECT id, username, email, password, created_at, updated_at, last_login FROM "user" WHERE username = ?`, username,
@@ -109,7 +107,7 @@ func ValidatePassword(dataStore model.IDataStoreAdapter, username string, pw []b
 
 	var actualPw string
 	var u User
-	if err := row.Scan(&u.Id, &u.Username, &u.Email, &actualPw, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
+	if err := row.Scan(&u.ID, &u.Username, &u.Email, &actualPw, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
 		return nil
 	}
 

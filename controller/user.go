@@ -25,6 +25,7 @@ type jwtToken struct {
 	Token string `json:"token"`
 }
 
+// UserLogin is the HTTP handler for logging as user into the system
 func UserLogin(w http.ResponseWriter, r *http.Request) {
 	var creds loginCredentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
@@ -47,9 +48,10 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	JsonResponse(t, w)
+	JSONResponse(t, w)
 }
 
+// UserCreate is the HTTP handler for creating a user
 func UserCreate(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	var u userWithPassword
@@ -78,7 +80,7 @@ func createToken(user *user.User) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username":  user.Username,
 		"email":     user.Email,
-		"id":        user.Id,
+		"id":        user.ID,
 		"lastLogin": user.LastLogin,
 	})
 	tokenString, err := token.SignedString([]byte("secret"))

@@ -10,6 +10,7 @@ import (
 	"github.com/chvck/meal-planner/store"
 )
 
+// IngredientIndex is the HTTP handler for the ingredient index endpoint
 func IngredientIndex(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	ingredients, err := ingredient.All(db)

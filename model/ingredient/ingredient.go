@@ -1,20 +1,23 @@
 package ingredient
 
 import (
-	"gopkg.in/guregu/null.v3"
-	"github.com/chvck/meal-planner/model"
 	"fmt"
+
 	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model"
+	"gopkg.in/guregu/null.v3"
 )
 
+// Ingredient is the model for the ingredient table
 type Ingredient struct {
-	Id       int    `db:"id"`
-	RecipeId int    `db:"recipe_id"`
+	ID       int    `db:"id"`
+	RecipeID int    `db:"recipe_id"`
 	Name     string `db:"name"`
 	Measure  null.String
 	Quantity int
 }
 
+// String is the string representation of an Ingredient
 func (i Ingredient) String() string {
 	return fmt.Sprintf("%v %v %v", i.Quantity, i.Measure, i.Name)
 }
@@ -41,7 +44,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 		defer rows.Close()
 		for rows.Next() {
 			i := Ingredient{}
-			rows.Scan(&i.Id, &i.RecipeId, &i.Name, &i.Measure, &i.Quantity)
+			rows.Scan(&i.ID, &i.RecipeID, &i.Name, &i.Measure, &i.Quantity)
 
 			ingredients = append(ingredients, i)
 		}
@@ -54,12 +57,12 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	return &ingredients, nil
 }
 
-// Create creates a list of Ingredients
-func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeId int) error {
+// CreateMany creates a list of Ingredients
+func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeID int) error {
 	for _, i := range ingredients {
 		if _, err := tx.Exec(
 			"INSERT INTO ingredient (recipe_id, name, measure, quantity) VALUES (?, ?, ?, ?);",
-			recipeId, i.Name, i.Measure, i.Quantity); err != nil {
+			recipeID, i.Name, i.Measure, i.Quantity); err != nil {
 			return err
 		}
 	}
@@ -67,11 +70,11 @@ func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeId int) error
 	return nil
 }
 
-// Delete all of the Ingredients for a Recipe
-func DeleteAllByRecipe(tx db.Transaction, recipeId int) error {
+// DeleteAllByRecipe all of the Ingredients for a Recipe
+func DeleteAllByRecipe(tx db.Transaction, recipeID int) error {
 	_, err := tx.Exec(
 		"DELETE FROM ingredient WHERE recipe_id = ?;",
-		recipeId)
+		recipeID)
 
 	return err
 }

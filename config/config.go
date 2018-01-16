@@ -9,12 +9,9 @@ import (
 type Info struct {
 	DbString  string `json:"dbString"`
 	DbType    string `json:"dbType"`
-	HttpPort  int    `json:"httpPort"`
-	HttpsPort int    `json:"httpsPort"`
+	HTTPPort  int    `json:"httpPort"`
+	HTTPSPort int    `json:"httpsPort"`
 	Hostname  string `json:"hostname"`
-}
-
-type Connection struct {
 }
 
 // ParseJSON unmarshals bytes to structs
@@ -22,6 +19,7 @@ func (c *Info) ParseJSON(b []byte) error {
 	return json.Unmarshal(b, &c)
 }
 
+// Load opens the config json file at the specified path and returns the parsed struct
 func Load(path string) (*Info, error) {
 	i := Info{}
 

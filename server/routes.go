@@ -13,30 +13,30 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Exception struct {
+type exception struct {
 	Message string `json:"message"`
 }
 
 func routes() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/recipe/", ValidateMiddleware(controller.RecipeIndex)).Methods("GET")
-	router.HandleFunc("/recipe/{id}", controller.RecipeById).Methods("GET")
+	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeIndex)).Methods("GET")
+	router.HandleFunc("/recipe/{id}", controller.RecipeByID).Methods("GET")
 	router.HandleFunc("/recipe/", controller.RecipeCreate).Methods("POST")
 
 	router.HandleFunc("/ingredient/", controller.IngredientIndex).Methods("GET")
 
 	router.HandleFunc("/login/", controller.UserLogin).Methods("POST")
-	router.HandleFunc("/user/", ValidateMiddleware(controller.UserCreate)).Methods("POST")
+	router.HandleFunc("/user/", validateMiddleware(controller.UserCreate)).Methods("POST")
 
 	return router
 }
 
-func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func validateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authorizationHeader := req.Header.Get("authorization")
 		if authorizationHeader == "" {
-			json.NewEncoder(w).Encode(Exception{Message: "An authorization header is required"})
+			json.NewEncoder(w).Encode(exception{Message: "An authorization header is required"})
 			return
 		}
 
@@ -44,16 +44,16 @@ func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if len(bearerToken) == 2 {
 			token, err := jwt.Parse(bearerToken[1], parseToken)
 			if err != nil {
-				json.NewEncoder(w).Encode(Exception{Message: err.Error()})
+				json.NewEncoder(w).Encode(exception{Message: err.Error()})
 				return
 			}
 
 			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				u := user.User{Id: int(claims["id"].(float64)), Username: claims["username"].(string)}
+				u := user.User{ID: int(claims["id"].(float64)), Username: claims["username"].(string)}
 				context.Set(req, "user", u)
 				next(w, req)
 			} else {
-				json.NewEncoder(w).Encode(Exception{Message: "Invalid authorization token"})
+				json.NewEncoder(w).Encode(exception{Message: "Invalid authorization token"})
 			}
 		}
 	})

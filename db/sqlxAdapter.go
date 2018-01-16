@@ -1,27 +1,31 @@
 package db
 
 import (
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"           // required by sqlx
+	_ "github.com/mattn/go-sqlite3" // required by sqlx
 )
 
-// SqlxAdapter is a data store adapter that persists to the Postgres database
+// SqlxAdapter is a data store adapter that utilises sqlx
 type SqlxAdapter struct {
 	db *sqlx.DB
 }
 
+// SqlxRows is an implementation of Rows that utilises sqlx
 type SqlxRows struct {
 	*sql.Rows
 }
 
+// SqlxRow is an implementation of Row that utilises sqlx
 type SqlxRow struct {
 	*sql.Row
 }
 
+// SqlxTransaction is an implementation of Transation that utilises sqlx
 type SqlxTransaction struct {
 	db *sqlx.DB
 	tx *sql.Tx
@@ -41,7 +45,7 @@ func (tx SqlxTransaction) Exec(baseExec string, bindVars ...interface{}) (int, e
 	}
 }
 
-// Query performs the specified query and populates the interface with retrieved data, will only retrieve a single row
+// QueryOne performs the specified query and returns a single row
 func (tx SqlxTransaction) QueryOne(baseQuery string, bindVars ...interface{}) Row {
 	query := tx.db.Rebind(baseQuery)
 	return SqlxRow{tx.tx.QueryRow(query, bindVars...)}
@@ -57,7 +61,7 @@ func (tx SqlxTransaction) Rollback() error {
 	return tx.tx.Rollback()
 }
 
-// Initialize the adapter with a pre-connected database - primarily for testing
+// InitializeWithDb initializes the adapter with a pre-connected database - primarily for testing
 func (p *SqlxAdapter) InitializeWithDb(db *sqlx.DB) error {
 	if err := db.Ping(); err != nil {
 		return fmt.Errorf("database connection does not work %v", err.Error())
@@ -77,7 +81,7 @@ func (p *SqlxAdapter) Initialize(dbType string, connectionString string) error {
 	}
 }
 
-// Query performs the specified query and populates the array with retrieved data
+// Query performs the specified query and returns a set of rows
 func (p SqlxAdapter) Query(baseQuery string, bindVars ...interface{}) (Rows, error) {
 	if strings.Contains(baseQuery, "?") {
 		baseQuery = p.db.Rebind(baseQuery)
@@ -89,13 +93,13 @@ func (p SqlxAdapter) Query(baseQuery string, bindVars ...interface{}) (Rows, err
 	}
 }
 
-// Query performs the specified query and populates the interface with retrieved data, will only retrieve a single row
+// QueryOne performs the specified query and returns a single row
 func (p SqlxAdapter) QueryOne(baseQuery string, bindVars ...interface{}) Row {
 	query := p.db.Rebind(baseQuery)
 	return SqlxRow{p.db.QueryRow(query, bindVars...)}
 }
 
-// Exec executes a statement
+// Exec executes a statement and returns number of affected rows
 func (p SqlxAdapter) Exec(baseExec string, bindVars ...interface{}) (int, error) {
 	e := p.db.Rebind(baseExec)
 	if result, err := p.db.Exec(e, bindVars...); err != nil {

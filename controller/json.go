@@ -2,11 +2,12 @@ package controller
 
 import (
 	"encoding/json"
-	"net/http"
 	"log"
+	"net/http"
 )
 
-func JsonResponse(response interface{}, w http.ResponseWriter) {
+// JSONResponse parses the data into JSON and writes it into the response
+func JSONResponse(response interface{}, w http.ResponseWriter) {
 	js, err := json.Marshal(response)
 	if err != nil {
 		log.Println(err.Error())
