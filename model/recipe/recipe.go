@@ -150,7 +150,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	}
 
 	if len(m) == 0 {
-		var recipes []Recipe
+		recipes := make([]Recipe, 0, len(m))
 		return &recipes, nil
 	}
 
