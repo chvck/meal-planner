@@ -1,6 +1,7 @@
 package recipe
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,6 +14,7 @@ import (
 // Recipe is the model for the recipe table
 type Recipe struct {
 	ID           int         `db:"id"`
+	UserID       int         `db:"user_id"`
 	Name         string      `db:"name"`
 	Instructions string      `db:"instructions"`
 	Yield        null.Int    `db:"yield"`
@@ -96,22 +98,23 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 	)
 
 	r := NewRecipe()
-	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime); err != nil {
+	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime); err == sql.ErrNoRows {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 
 	var ids []interface{}
 	ids = append(ids, r.ID)
 
-	if ingredients, err := ingredientsByRecipe(dataStore, ids...); err != nil {
-		return nil, err
-	} else {
+	if ingredients, err := ingredientsByRecipe(dataStore, ids...); err == nil {
 		if ingredients[r.ID] != nil {
 			r.Ingredients = ingredients[r.ID]
 		}
+		return r, nil
+	} else {
+		return nil, err
 	}
-
-	return r, nil
 }
 
 // All retrieves all recipes
@@ -127,7 +130,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset i
 	if rows, err := dataStore.Query(fmt.Sprintf(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
 		FROM recipe r
-		WHERE user_id = ?
+		WHERE r.user_id = ?
 		ORDER BY r.id
 		LIMIT %v OFFSET %v;`,
 		limit,

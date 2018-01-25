@@ -1,206 +1,118 @@
-package recipe
+package recipe_test
 
 import (
-	"testing"
-	"github.com/stretchr/testify/assert"
-	"github.com/chvck/meal-planner/db"
-	"errors"
 	"database/sql"
-	"reflect"
-	"gopkg.in/guregu/null.v3"
+	"sort"
+	"testing"
+
+	"github.com/chvck/meal-planner/testhelper"
+
+	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model/recipe"
+	"github.com/jmoiron/sqlx"
+	"github.com/mattes/migrate"
+	"github.com/mattes/migrate/database/sqlite3"
+	_ "github.com/mattes/migrate/source/file"
+	"github.com/stretchr/testify/assert"
 )
 
-type RecipeTestAdapter struct {
-	queries   []string
-	bindVars  [][]interface{}
-	Row       []interface{}
-	QueryRows [][]interface{}
-	AllRows [][][]interface{}
-	i int
-}
+func setup(t *testing.T) (*sql.DB, func()) {
+	openDb, err := sql.Open("sqlite3", ":memory:")
 
-type mockRows struct {
-	Rows [][]interface{}
-	row  []interface{}
-	i    int
-}
-
-type mockRow struct {
-	row  []interface{}
-	i    int
-}
-
-func (mr *mockRows) Next() bool {
-	if mr.i < len(mr.Rows) {
-		mr.row = mr.Rows[mr.i]
-		mr.i++
-		return true
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	return false
-}
+	driver, err := sqlite3.WithInstance(openDb, &sqlite3.Config{})
 
-func (mr *mockRows) Scan(dest ...interface{}) error {
-	if len(dest) != len(mr.row) {
-		return errors.New("incorrect number of arguments supplied to Scan")
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for i, col := range mr.row {
-		rv := reflect.ValueOf(dest[i])
-		rv.Elem().Set(reflect.ValueOf(col))
+	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "sqlite3", driver)
+
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	return nil
-}
-
-func (mr mockRows) Close() error {
-	return nil
-}
-
-
-func (mr *mockRow) Scan(dest ...interface{}) error {
-	if len(dest) != len(mr.row) {
-		return errors.New("incorrect number of arguments supplied to Scan")
+	if err := m.Up(); err != nil {
+		t.Fatal(err)
 	}
 
-	for i, col := range mr.row {
-		rv := reflect.ValueOf(dest[i])
-		rv.Elem().Set(reflect.ValueOf(col))
+	testhelper.HelperCreateUsers(t, openDb, "../testdata/users.json")
+
+	down := func() {
+		openDb.Close()
+		m.Down()
 	}
 
-	return nil
+	return openDb, down
 }
 
-func (r RecipeTestAdapter) Initialize(dbType string, connectionString string) error {
-	return nil
-}
+// -- Tests
 
-func (r *RecipeTestAdapter) Query(baseQuery string, bindVars ...interface{}) (db.Rows, error) {
-	r.queries = append(r.queries, baseQuery)
-	r.bindVars = append(r.bindVars, bindVars)
-	r.QueryRows = r.AllRows[r.i]
-	rows := &mockRows{Rows: r.QueryRows}
+func TestOneWhenCorrectUserAndIdThenOK(t *testing.T) {
+	openDb, teardown := setup(t)
+	defer teardown()
 
-	r.i++
-	return rows, nil
-}
+	adapter := db.SqlxAdapter{}
 
-func (r *RecipeTestAdapter) QueryOne(baseQuery string, bindVars ...interface{}) db.Row {
-	r.queries = append(r.queries, baseQuery)
-	r.bindVars = append(r.bindVars, bindVars)
-
-	return &mockRow{row: r.Row}
-}
-
-func (r RecipeTestAdapter) Exec(baseExec string, bindVars ...interface{}) (int, error) {
-	return 0, nil
-}
-
-func TestNewRecipe(t *testing.T) {
-	r := NewRecipe()
-	assert.Equal(t, -1, r.Id)
-}
-
-func TestOne(t *testing.T) {
-	i1 := ingredientWithProps{
-		Id:       1,
-		Name:     "ing1",
-		Measure:  null.StringFrom("meas1"),
-		Quantity: 12,
+	if err := adapter.InitializeWithDb(sqlx.NewDb(openDb, "sqlite3")); err != nil {
+		t.Fatal(err)
+		return
 	}
 
-	var iCol []ingredientWithProps
-	iCol = append(iCol, i1)
+	recipes := *testhelper.HelperCreateRecipes(t, openDb, "../testdata/recipes.json")
+	ingredients := *testhelper.HelperCreateIngredients(t, openDb, "../testdata/ingredients.json")
 
-	r1 := recipe{
-		Id:           1,
-		Name:         "name1",
-		Description:  null.String{sql.NullString{String: "desc1"}},
-		Instructions: "inst1",
-		Yield:        null.Int{sql.NullInt64{Int64: 1}},
-		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
-		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
-		Ingredients:  iCol,
-	}
+	expected := recipes[1]
+	expected.Ingredients = ingredients[1]
 
-	var rRow1 []interface{}
-	var iRow1 []interface{}
-	rRow1 = append(rRow1, r1.Id, r1.Name, r1.Instructions, r1.Description, r1.Yield, r1.PrepTime, r1.CookTime)
-	iRow1 = append(iRow1, r1.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
-
-	var query2Rows [][]interface{}
-	query2Rows = append(query2Rows, iRow1)
-
-	var allRows [][][]interface{}
-	allRows = append(allRows, query2Rows)
-
-	adapter := &RecipeTestAdapter{Row: rRow1, AllRows: allRows}
-	recipePtr, err := One(adapter, 1)
+	recipe, err := recipe.One(&adapter, expected.ID, expected.UserID)
 
 	assert.Nil(t, err)
-	assert.NotNil(t, recipePtr)
-	assertRecipe(t, &r1, recipePtr)
-	assert.Equal(t, 2, len(adapter.queries))
+	assertRecipe(t, &expected, recipe)
 }
 
-func TestAll(t *testing.T) {
-	i1 := ingredientWithProps{
-		Id:       1,
-		Name:     "ing1",
-		Measure:  null.StringFrom("meas1"),
-		Quantity: 12,
+func TestOneWhenWrongUserThenNoResult(t *testing.T) {
+	openDb, teardown := setup(t)
+	defer teardown()
+
+	adapter := db.SqlxAdapter{}
+
+	if err := adapter.InitializeWithDb(sqlx.NewDb(openDb, "sqlite3")); err != nil {
+		t.Fatal(err)
+		return
 	}
 
-	var iCol []ingredientWithProps
-	iCol = append(iCol, i1)
+	recipes := *testhelper.HelperCreateRecipes(t, openDb, "../testdata/recipes.json")
+	ingredients := *testhelper.HelperCreateIngredients(t, openDb, "../testdata/ingredients.json")
 
-	r1 := recipe{
-		Id:           1,
-		Name:         "name1",
-		Description:  null.String{sql.NullString{String: "desc1"}},
-		Instructions: "inst1",
-		Yield:        null.Int{sql.NullInt64{Int64: 1}},
-		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
-		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
-		Ingredients:  iCol,
-	}
-	r2 := recipe{
-		Id:           2,
-		Name:         "name2",
-		Description:  null.String{sql.NullString{String: "desc2"}},
-		Instructions: "inst2",
-		Yield:        null.Int{sql.NullInt64{Int64: 1}},
-		PrepTime:     null.Int{sql.NullInt64{Int64: 30}},
-		CookTime:     null.Int{sql.NullInt64{Int64: 5}},
-		Ingredients:  iCol,
-	}
+	expected := recipes[1]
+	expected.Ingredients = ingredients[1]
 
-	var rRow1 []interface{}
-	var rRow2 []interface{}
-	var iRow1 []interface{}
-	var iRow2 []interface{}
-	rRow1 = append(rRow1, r1.Id, r1.Name, r1.Instructions, r1.Description, r1.Yield, r1.PrepTime, r1.CookTime)
-	rRow2 = append(rRow2, r2.Id, r2.Name, r2.Instructions, r2.Description, r2.Yield, r2.PrepTime, r2.CookTime)
-	iRow1 = append(iRow1, r1.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
-	iRow2 = append(iRow2, r2.Id, i1.Id, i1.Name, i1.Measure, i1.Quantity)
+	recipe, err := recipe.One(&adapter, expected.ID, 2)
 
-	var query1Rows [][]interface{}
-	query1Rows = append(query1Rows, rRow1, rRow2)
-
-	var query2Rows [][]interface{}
-	query2Rows = append(query2Rows, iRow1, iRow2)
-
-	var allRows [][][]interface{}
-	allRows = append(allRows, query1Rows, query2Rows)
-
-	adapter := &RecipeTestAdapter{AllRows: allRows}
-	recipesPtr, err := All(adapter)
-
+	assert.Nil(t, recipe)
 	assert.Nil(t, err)
-	assert.NotNil(t, recipesPtr)
-	recipes := *recipesPtr
-	assert.Equal(t, 2, len(recipes))
-	assertRecipe(t, &r1, &recipes[0])
-	assertRecipe(t, &r2, &recipes[1])
-	assert.Equal(t, 2, len(adapter.queries))
+}
+
+func assertRecipe(t *testing.T, expected *recipe.Recipe, actual *recipe.Recipe) {
+	assert.Equal(t, expected.ID, actual.ID)
+	assert.Equal(t, expected.Name, actual.Name)
+	assert.Equal(t, expected.CookTime, actual.CookTime)
+	assert.Equal(t, expected.PrepTime, actual.PrepTime)
+	assert.Equal(t, expected.Yield, actual.Yield)
+	assert.Equal(t, expected.Description, actual.Description)
+	assert.Equal(t, expected.Instructions, actual.Instructions)
+
+	// Slices of different orders aren't equal
+	sort.SliceStable(expected.Ingredients, func(i, j int) bool {
+		return expected.Ingredients[i].ID < expected.Ingredients[j].ID
+	})
+
+	sort.SliceStable(actual.Ingredients, func(i, j int) bool {
+		return actual.Ingredients[i].ID < actual.Ingredients[j].ID
+	})
+	assert.Equal(t, expected.Ingredients, actual.Ingredients)
 }

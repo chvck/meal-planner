@@ -10,11 +10,11 @@ import (
 
 // Ingredient is the model for the ingredient table
 type Ingredient struct {
-	ID       int    `db:"id"`
-	RecipeID int    `db:"recipe_id"`
-	Name     string `db:"name"`
-	Measure  null.String
-	Quantity int
+	ID       int         `db:"id" json:"id"`
+	RecipeID int         `db:"recipe_id" json:"recipe_id"`
+	Name     string      `db:"name"`
+	Measure  null.String `db:"measure" json:"measure"`
+	Quantity int         `db:"quantity" json:"quantity"`
 }
 
 // String is the string representation of an Ingredient

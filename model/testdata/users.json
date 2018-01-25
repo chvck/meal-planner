@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "username": "user1",
+    "email": "user1@test.test",
+    "createdAt": 1516906474,
+    "updatedAt": 1516906474,
+    "lastLogin": 1516996474,
+    "password": "$2a$10$sf1s2xS9TbGSagXka5GoNuG.SXxoJUrBzCYOT29CNcWEyhnhLUWKG"
+  },
+  {
+    "id": 2,
+    "username": "user2",
+    "email": "user21@test.test",
+    "createdAt": 1517106474,
+    "updatedAt": 1517106474,
+    "lastLogin": null,
+    "password": "$2a$10$sf1s2xS9TbGSagXka5GoNuG.SXxoJUrBzCYOT29CNcWEyhnhLUWKG"
+  }
+]

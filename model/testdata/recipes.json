@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "user_id": 1,
+    "name": "Lazy chicken curry",
+    "instructions": "Cook chicken, add sauce",
+    "yield": 4,
+    "prep_time": 5,
+    "cook_time": 25,
+    "description": "A lazy chicken curry"
+  }
+]
