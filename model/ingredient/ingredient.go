@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model"
 	"gopkg.in/guregu/null.v3"
 )
 
@@ -19,50 +18,19 @@ type Ingredient struct {
 
 // String is the string representation of an Ingredient
 func (i Ingredient) String() string {
-	return fmt.Sprintf("%v %v %v", i.Quantity, i.Measure, i.Name)
-}
-
-// All retrieves all ingredients
-func All(dataStore model.IDataStoreAdapter) (*[]Ingredient, error) {
-	return AllWithLimit(dataStore, "NULL", 0)
-}
-
-// AllWithLimit retrieves x ingredients starting from an offset
-// limit is expected to a positive int or string NULL (for no limit)
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int) (*[]Ingredient, error) {
-	var ingredients []Ingredient
-	if rows, err := dataStore.Query(fmt.Sprintf(
-		`SELECT id, recipe_id, name, measure, quantity
-		FROM ingredient
-		ORDER BY name
-		LIMIT %v OFFSET %v;`,
-		limit,
-		offset,
-	)); err != nil {
-		return nil, err
-	} else {
-		defer rows.Close()
-		for rows.Next() {
-			i := Ingredient{}
-			rows.Scan(&i.ID, &i.RecipeID, &i.Name, &i.Measure, &i.Quantity)
-
-			ingredients = append(ingredients, i)
-		}
-
-		if err = rows.Err(); err != nil {
-			return nil, err
-		}
-	}
-
-	return &ingredients, nil
+	return fmt.Sprintf("%v %v %v", i.Quantity, i.Measure.String, i.Name)
 }
 
 // CreateMany creates a list of Ingredients
 func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeID int) error {
 	for _, i := range ingredients {
-		if _, err := tx.Exec(
-			"INSERT INTO ingredient (recipe_id, name, measure, quantity) VALUES (?, ?, ?, ?);",
-			recipeID, i.Name, i.Measure, i.Quantity); err != nil {
+		row := tx.QueryOne(
+			"INSERT INTO ingredient (recipe_id, name, measure, quantity) VALUES (?, ?, ?, ?) RETURNING id;",
+			recipeID, i.Name, i.Measure, i.Quantity)
+
+		var ingID int
+		if err := row.Scan(&ingID); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}

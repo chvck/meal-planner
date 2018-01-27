@@ -2,6 +2,7 @@ package recipe
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -13,15 +14,15 @@ import (
 
 // Recipe is the model for the recipe table
 type Recipe struct {
-	ID           int         `db:"id"`
-	UserID       int         `db:"user_id"`
-	Name         string      `db:"name"`
-	Instructions string      `db:"instructions"`
-	Yield        null.Int    `db:"yield"`
-	PrepTime     null.Int    `db:"prep_time"`
-	CookTime     null.Int    `db:"cook_time"`
-	Description  null.String `db:"description"`
-	Ingredients  []ingredient.Ingredient
+	ID           int                     `db:"id" json:"id"`
+	UserID       int                     `db:"user_id" json:"user_id"`
+	Name         string                  `db:"name" json:"name"`
+	Instructions string                  `db:"instructions" json:"instructions"`
+	Yield        null.Int                `db:"yield" json:"yield"`
+	PrepTime     null.Int                `db:"prep_time" json:"prep_time"`
+	CookTime     null.Int                `db:"cook_time" json:"cook_time"`
+	Description  null.String             `db:"description" json:"description"`
+	Ingredients  []ingredient.Ingredient `json:"ingredients"`
 }
 
 // NewRecipe creates a new Recipe
@@ -117,14 +118,8 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 	}
 }
 
-// All retrieves all recipes
-func All(dataStore model.IDataStoreAdapter, userID int) (*[]Recipe, error) {
-	return AllWithLimit(dataStore, "NULL", 0, userID)
-}
-
 // AllWithLimit retrieves x recipes starting from an offset
-// limit is expected to a positive int or string NULL (for no limit)
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int, userID int) (*[]Recipe, error) {
+func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
 	m := make(map[int]*Recipe)
 	var ids []interface{}
 	if rows, err := dataStore.Query(fmt.Sprintf(
@@ -220,33 +215,38 @@ func ingredientsByRecipe(dataStore model.IDataStoreAdapter, ids ...interface{}) 
 }
 
 // Create creates the specific Recipe
-func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) error {
-	tx, err := dataStore.NewTransaction()
-	if err != nil {
-		return err
+func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) (*int, error) {
+	if err := validate(r); err != nil {
+		return nil, err
 	}
 
+	tx, err := dataStore.NewTransaction()
+	if err != nil {
+		return nil, err
+	}
+
+	query := "INSERT INTO recipe (name, instructions, yield, prep_time, cook_time, description, user_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;"
+
 	row := tx.QueryOne(
-		"INSERT INTO recipe (name, instructions, yield, prep_time, cook_time, description, user_id) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;",
+		query,
 		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, userID)
 
 	var recipeID int
 	if err = row.Scan(&recipeID); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	if err := ingredient.CreateMany(tx, r.Ingredients, r.ID); err != nil {
+	if err := ingredient.CreateMany(tx, r.Ingredients, recipeID); err != nil {
 		tx.Rollback()
-		return err
+		return nil, err
 	}
 
-	err = tx.Commit()
-	if err != nil {
-		return err
+	if err = tx.Commit(); err != nil {
+		return nil, err
 	}
 
-	return nil
+	return &recipeID, err
 }
 
 // Update updates the specific Recipe
@@ -277,6 +277,17 @@ func Update(dataStore model.IDataStoreAdapter, r Recipe, userID int) error {
 	err = tx.Commit()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func validate(r Recipe) error {
+	if r.Name == "" {
+		return errors.New("name cannot be empty")
+	}
+	if r.Instructions == "" {
+		return errors.New("instructions cannot be empty")
 	}
 
 	return nil

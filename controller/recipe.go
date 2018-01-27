@@ -14,11 +14,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	defaultRecipePerPage = 10
+	defaultRecipeOffset  = 0
+)
+
 // RecipeIndex is the HTTP handler for the recipe index endpoint
 func RecipeIndex(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	u := context.Get(r, "user").(user.User)
-	recipes, err := recipe.All(db, u.ID)
+	perPage := getURLParameterAsInt(r.URL, "perPage", defaultRecipePerPage)
+	offset := getURLParameterAsInt(r.URL, "offset", defaultRecipeOffset)
+	recipes, err := recipe.AllWithLimit(db, perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipes", http.StatusNotFound)
@@ -67,11 +74,10 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u := context.Get(r, "user").(user.User)
-	err := recipe.Create(db, re, u.ID)
+	_, err := recipe.Create(db, re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
 		return
 	}
-
 }

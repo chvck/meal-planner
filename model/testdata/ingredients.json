@@ -33,5 +33,19 @@
     "quantity": 2,
     "measure": "tsp",
     "recipe_id": 2
+  },
+  {
+    "id": 6,
+    "name": "Potato",
+    "quantity": 1,
+    "measure": null,
+    "recipe_id": 3
+  },
+  {
+    "id": 7,
+    "name": "Paprika",
+    "quantity": 1,
+    "measure": "tsp",
+    "recipe_id": 3
   }
 ]

@@ -24,8 +24,6 @@ func routes() *mux.Router {
 	router.HandleFunc("/recipe/{id}", controller.RecipeByID).Methods("GET")
 	router.HandleFunc("/recipe/", controller.RecipeCreate).Methods("POST")
 
-	router.HandleFunc("/ingredient/", controller.IngredientIndex).Methods("GET")
-
 	router.HandleFunc("/login/", controller.UserLogin).Methods("POST")
 	router.HandleFunc("/user/", validateMiddleware(controller.UserCreate)).Methods("POST")
 

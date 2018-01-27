@@ -19,7 +19,7 @@ type userWithPassword struct {
 
 // HelperCreateUsers writes users to the provided database using the fixtures at the path provided
 func HelperCreateUsers(t *testing.T, db *sql.DB, path string) *map[int]user.User {
-	bytes := helperLoadFixture(t, path)
+	bytes := HelperLoadFixture(t, path)
 	var users []userWithPassword
 	if err := json.Unmarshal(bytes, &users); err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func HelperCreateUsers(t *testing.T, db *sql.DB, path string) *map[int]user.User
 	userIDToUser := make(map[int]user.User)
 	for _, user := range users {
 		query := `INSERT INTO "user" (id, "username", "email", "created_at", "updated_at", "last_login", "password")
-		VALUES (?, ?, ?, ?, ?, ?, ?)`
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`
 		if _, err := db.Exec(query, user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt, user.LastLogin.Int64, user.Password); err != nil {
 			t.Error(query)
 			t.Fatal(err)
@@ -42,7 +42,7 @@ func HelperCreateUsers(t *testing.T, db *sql.DB, path string) *map[int]user.User
 
 // HelperCreateIngredients writes ingredients to the provided database using the fixtures at the path provided
 func HelperCreateIngredients(t *testing.T, db *sql.DB, path string) *map[int][]ingredient.Ingredient {
-	bytes := helperLoadFixture(t, path)
+	bytes := HelperLoadFixture(t, path)
 	var ingredients []ingredient.Ingredient
 	if err := json.Unmarshal(bytes, &ingredients); err != nil {
 		t.Fatal(err)
@@ -51,7 +51,7 @@ func HelperCreateIngredients(t *testing.T, db *sql.DB, path string) *map[int][]i
 	idToIng := make(map[int][]ingredient.Ingredient)
 	for _, ing := range ingredients {
 		query := `INSERT INTO "ingredient" (id, "name", "quantity", "measure", "recipe_id")
-		VALUES (?, ?, ?, ?, ?)`
+		VALUES ($1, $2, $3, $4, $5)`
 		if _, err := db.Exec(query, ing.ID, ing.Name, ing.Quantity, ing.Measure, ing.RecipeID); err != nil {
 			t.Error(query)
 			t.Fatal(err)
@@ -65,7 +65,7 @@ func HelperCreateIngredients(t *testing.T, db *sql.DB, path string) *map[int][]i
 
 // HelperCreateRecipes writes recipes to the provided database using the fixtures at the path provided
 func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.Recipe {
-	bytes := helperLoadFixture(t, path)
+	bytes := HelperLoadFixture(t, path)
 	var recipes []recipe.Recipe
 	if err := json.Unmarshal(bytes, &recipes); err != nil {
 		t.Fatal(err)
@@ -74,8 +74,8 @@ func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.
 	idToRecipe := make(map[int]recipe.Recipe)
 	for _, rec := range recipes {
 		query := `INSERT INTO "recipe" (id, "name", "instructions", "yield", "prep_time", "cook_time", "description", "user_id")
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-		if _, err := db.Exec(query, rec.ID, rec.Name, rec.Instructions, rec.Yield.Int64, rec.PrepTime,
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		if _, err := db.Exec(query, rec.ID, rec.Name, rec.Instructions, rec.Yield, rec.PrepTime,
 			rec.CookTime, rec.Description, rec.UserID); err != nil {
 			t.Error(query)
 			t.Fatal(err)
@@ -87,7 +87,8 @@ func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.
 	return &idToRecipe
 }
 
-func helperLoadFixture(t *testing.T, path string) []byte {
+// HelperLoadFixture loads a fixture from a file
+func HelperLoadFixture(t *testing.T, path string) []byte {
 	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

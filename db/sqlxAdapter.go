@@ -121,3 +121,8 @@ func (p SqlxAdapter) NewTransaction() (Transaction, error) {
 		return &SqlxTransaction{db: p.db, tx: tx}, err
 	}
 }
+
+// DBType returns the type of database in use
+func (p *SqlxAdapter) DBType() string {
+	return p.db.DriverName()
+}

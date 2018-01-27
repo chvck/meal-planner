@@ -1,0 +1,20 @@
+{
+  "user_id": 1,
+  "name": "Cheese on toast",
+  "instructions": "Put cheese on toast, toast it. Not in a toaster.",
+  "yield": 1,
+  "prep_time": 2,
+  "cook_time": 2,
+  "description": "Toast, with cheese on.",
+  "ingredients": [
+    {
+      "name": "bread",
+      "quantity": 2
+    },
+    {
+      "name": "cheese",
+      "quantity": 1,
+      "measure": "kg"
+    }
+  ]
+}
