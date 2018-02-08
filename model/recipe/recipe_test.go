@@ -1,12 +1,10 @@
 package recipe_test
 
 import (
-	"database/sql"
 	"encoding/json"
 	"sort"
 	"testing"
 
-	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/testhelper"
 
 	"github.com/chvck/meal-planner/db"
@@ -14,52 +12,14 @@ import (
 	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/postgres"
 	_ "github.com/mattes/migrate/source/file"
 	"github.com/stretchr/testify/assert"
 )
 
-func setup(t *testing.T) (*sql.DB, string, func()) {
-	cfg, err := config.Load("../../config.test.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	openDb, err := sql.Open(cfg.DbType, cfg.DbString)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	driver, err := postgres.WithInstance(openDb, &postgres.Config{})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "postgres", driver)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := m.Up(); err != nil {
-		t.Fatal(err)
-	}
-
-	testhelper.HelperCreateUsers(t, openDb, "../testdata/users.json")
-
-	down := func() {
-		m.Down()
-		openDb.Close()
-	}
-
-	return openDb, cfg.DbType, down
-}
-
 // -- Tests
 
 func TestOneWhenCorrectUserAndIdThenOK(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -82,7 +42,7 @@ func TestOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 }
 
 func TestOneWhenWrongUserThenNil(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -105,7 +65,7 @@ func TestOneWhenWrongUserThenNil(t *testing.T) {
 }
 
 func TestOneWhenWrongIdThenNil(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -125,7 +85,7 @@ func TestOneWhenWrongIdThenNil(t *testing.T) {
 }
 
 func TestAllWithLimit(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -150,7 +110,7 @@ func TestAllWithLimit(t *testing.T) {
 }
 
 func TestAllWithLimitWhenNoResultsThenEmptySlice(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -170,7 +130,7 @@ func TestAllWithLimitWhenNoResultsThenEmptySlice(t *testing.T) {
 }
 
 func TestAllWithLimitWhenLimitThenLimitedResults(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -194,7 +154,7 @@ func TestAllWithLimitWhenLimitThenLimitedResults(t *testing.T) {
 }
 
 func TestAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -218,7 +178,7 @@ func TestAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
 }
 
 func TestFindByIngredientNames1Name(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -243,7 +203,7 @@ func TestFindByIngredientNames1Name(t *testing.T) {
 }
 
 func TestFindByIngredientNamesWhenMultipleNamesThenOr(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -268,7 +228,7 @@ func TestFindByIngredientNamesWhenMultipleNamesThenOr(t *testing.T) {
 }
 
 func TestFindByIngredientNamesWhenNoResultsThenEmptySlice(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -288,7 +248,7 @@ func TestFindByIngredientNamesWhenNoResultsThenEmptySlice(t *testing.T) {
 }
 
 func TestCreate(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -356,7 +316,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestCreateWhenEmptyNameThenError(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}
@@ -381,7 +341,7 @@ func TestCreateWhenEmptyNameThenError(t *testing.T) {
 }
 
 func TestCreateWhenEmptyInstructionsThenError(t *testing.T) {
-	openDb, dbType, teardown := setup(t)
+	openDb, dbType, teardown := testhelper.HelperSetupModels(t)
 	defer teardown()
 
 	adapter := db.SqlxAdapter{}

@@ -21,16 +21,11 @@ func (i Ingredient) String() string {
 	return fmt.Sprintf("%v %v %v", i.Quantity, i.Measure.String, i.Name)
 }
 
-// CreateMany creates a list of Ingredients
+// CreateMany creates many ingredients for a given recipe id using a transaction
 func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeID int) error {
-	for _, i := range ingredients {
-		row := tx.QueryOne(
-			"INSERT INTO ingredient (recipe_id, name, measure, quantity) VALUES (?, ?, ?, ?) RETURNING id;",
-			recipeID, i.Name, i.Measure, i.Quantity)
-
-		var ingID int
-		if err := row.Scan(&ingID); err != nil {
-			tx.Rollback()
+	query := "INSERT INTO ingredient (name, measure, quantity, recipe_id) VALUES (?, ?, ?, ?);"
+	for _, ing := range ingredients {
+		if _, err := tx.Exec(query, ing.Name, ing.Measure, ing.Quantity, recipeID); err != nil {
 			return err
 		}
 	}
@@ -38,11 +33,12 @@ func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeID int) error
 	return nil
 }
 
-// DeleteAllByRecipe all of the Ingredients for a Recipe
+// DeleteAllByRecipe deletes all ingredients for a given recipe id using a transaction
 func DeleteAllByRecipe(tx db.Transaction, recipeID int) error {
-	_, err := tx.Exec(
-		"DELETE FROM ingredient WHERE recipe_id = ?;",
-		recipeID)
+	query := "DELETE FROM ingredient WHERE recipe_id = ?;"
+	if _, err := tx.Exec(query, recipeID); err != nil {
+		return err
+	}
 
-	return err
+	return nil
 }

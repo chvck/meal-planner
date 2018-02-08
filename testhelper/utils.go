@@ -6,7 +6,10 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/model/recipe"
+	"github.com/mattes/migrate"
+	"github.com/mattes/migrate/database/postgres"
 
 	"github.com/chvck/meal-planner/model/ingredient"
 	"github.com/chvck/meal-planner/model/user"
@@ -95,4 +98,53 @@ func HelperLoadFixture(t *testing.T, path string) []byte {
 	}
 
 	return bytes
+}
+
+// HelperSetupModels runs migrations, creates users and returns a db connection
+func HelperSetupModels(t *testing.T) (*sql.DB, string, func()) {
+	cfg, err := config.Load("../../config.test.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	openDb, err := sql.Open(cfg.DbType, cfg.DbString)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	driver, err := postgres.WithInstance(openDb, &postgres.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "postgres", driver)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.Down(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.Up(); err != nil {
+		t.Fatal(err)
+	}
+
+	HelperCreateUsers(t, openDb, "../testdata/users.json")
+
+	if err := openDb.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	openDb, err = sql.Open(cfg.DbType, cfg.DbString)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	down := func() {
+		openDb.Close()
+	}
+
+	return openDb, cfg.DbType, down
 }

@@ -6,7 +6,7 @@ Meal planning web application written in Golang.
 
 ### Migrations
 
-Migrations are written with Postgresql targeted but with support for any RDBMS in mind.
+Migrations are written with Postgresql targeted.
 
 The migrations are generic in format so should run with any migration runner that can read from filesystem.
 
