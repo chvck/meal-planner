@@ -2,7 +2,6 @@ package user
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/chvck/meal-planner/model"
@@ -42,23 +41,17 @@ func One(dataStore model.IDataStoreAdapter, id int) (*User, error) {
 	return &u, nil
 }
 
-// All retrieves all users
-func All(dataStore model.IDataStoreAdapter) (*[]User, error) {
-	return AllWithLimit(dataStore, "NULL", 0)
-}
-
 // AllWithLimit retrieves x users starting from an offset
-// limit is expected to a positive int or string NULL (for no limit)
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit interface{}, offset int) (*[]User, error) {
+func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int) (*[]User, error) {
 	var users []User
-	if rows, err := dataStore.Query(fmt.Sprintf(
+	if rows, err := dataStore.Query(
 		`SELECT id, username, email, created_at, updated_at, last_login
 		FROM user
 		ORDER BY id
-		LIMIT %v OFFSET %v;`,
+		LIMIT ? OFFSET ?;`,
 		limit,
 		offset,
-	)); err != nil {
+	); err != nil {
 		return nil, err
 	} else {
 		defer rows.Close()

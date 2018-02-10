@@ -122,15 +122,13 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
 	m := make(map[int]*Recipe)
 	var ids []interface{}
-	if rows, err := dataStore.Query(fmt.Sprintf(
+	if rows, err := dataStore.Query(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
 		FROM recipe r
 		WHERE r.user_id = ?
 		ORDER BY r.id
-		LIMIT %v OFFSET %v;`,
-		limit,
-		offset,
-	), userID); err != nil {
+		LIMIT ? OFFSET ?;`,
+		userID, limit, offset); err != nil {
 		return nil, err
 	} else {
 		defer rows.Close()
