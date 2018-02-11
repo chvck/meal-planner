@@ -21,11 +21,13 @@ func routes() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeIndex)).Methods("GET")
-	router.HandleFunc("/recipe/{id}", controller.RecipeByID).Methods("GET")
-	router.HandleFunc("/recipe/", controller.RecipeCreate).Methods("POST")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeByID)).Methods("GET")
+	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeCreate)).Methods("POST")
+
+	router.HandleFunc("/menu/{id}", validateMiddleware(controller.MenuByID)).Methods("GET")
 
 	router.HandleFunc("/login/", controller.UserLogin).Methods("POST")
-	router.HandleFunc("/user/", validateMiddleware(controller.UserCreate)).Methods("POST")
+	router.HandleFunc("/register/", controller.UserCreate).Methods("POST")
 
 	return router
 }

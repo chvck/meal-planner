@@ -47,34 +47,34 @@ func RecipeByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipes, err := recipe.One(db, id, u.ID)
+	recipe, err := recipe.One(db, id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipe", http.StatusNotFound)
 		return
 	}
 
-	JSONResponse(recipes, w)
+	JSONResponse(recipe, w)
 }
 
 // RecipeCreate is the HTTP handler for creating a recipe
 func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	var re recipe.Recipe
-	if body, err := ioutil.ReadAll(r.Body); err != nil {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Invalid recipe", http.StatusBadRequest)
 		return
-	} else {
-		if err := json.Unmarshal(body, &re); err != nil {
-			log.Println(err.Error())
-			http.Error(w, "Invalid recipe", http.StatusBadRequest)
-			return
-		}
+	}
+	if err := json.Unmarshal(body, &re); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		return
 	}
 
 	u := context.Get(r, "user").(user.User)
-	_, err := recipe.Create(db, re, u.ID)
+	_, err = recipe.Create(db, re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)

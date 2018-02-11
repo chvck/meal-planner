@@ -56,19 +56,19 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	var u userWithPassword
 
-	if body, err := ioutil.ReadAll(r.Body); err != nil {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Invalid user", http.StatusBadRequest)
 		return
-	} else {
-		if err := json.Unmarshal(body, &u); err != nil {
-			log.Println(err.Error())
-			http.Error(w, "Invalid user", http.StatusBadRequest)
-			return
-		}
+	}
+	if err := json.Unmarshal(body, &u); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid user", http.StatusBadRequest)
+		return
 	}
 
-	err := user.Create(db, u.User, []byte(u.Password))
+	err = user.Create(db, u.User, []byte(u.Password))
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create user", http.StatusInternalServerError)
