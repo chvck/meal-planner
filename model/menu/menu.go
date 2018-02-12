@@ -20,7 +20,7 @@ type Menu struct {
 // One retrieves a single Menu by id
 func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 	row := dataStore.QueryOne(
-		`SELECT m.id, m.name, m.description
+		`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
 		WHERE m.id = ? and m.user_id = ?;`,
 		id,
@@ -28,7 +28,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 	)
 
 	m := Menu{}
-	if err := row.Scan(&m.ID, &m.Name, &m.Description); err == sql.ErrNoRows {
+	if err := row.Scan(&m.ID, &m.Name, &m.Description, &m.UserID); err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
 		return nil, err

@@ -3,13 +3,15 @@ package testhelper
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
 	"github.com/chvck/meal-planner/config"
+	"github.com/chvck/meal-planner/model/menu"
 	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/postgres"
+	_ "github.com/mattes/migrate/database/postgres"
 
 	"github.com/chvck/meal-planner/model/ingredient"
 	"github.com/chvck/meal-planner/model/user"
@@ -90,6 +92,65 @@ func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.
 	return &idToRecipe
 }
 
+// HelperCreateMenus writes menus + nested recipes + ingredients to the provided database using the fixtures at the path provided
+func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu {
+	bytes := HelperLoadFixture(t, path)
+	var menus []menu.Menu
+	if err := json.Unmarshal(bytes, &menus); err != nil {
+		t.Fatal(err)
+	}
+
+	idToMenu := make(map[int]menu.Menu)
+	for _, m := range menus {
+		query := `INSERT INTO "menu" (id, "name", "description", "user_id")
+		VALUES ($1, $2, $3, $4)`
+		if _, err := db.Exec(query, m.ID, m.Name, m.Description, m.UserID); err != nil {
+			t.Error(query)
+			t.Fatal(err)
+		}
+
+		idToMenu[m.ID] = m
+
+		for _, rec := range m.Recipes {
+			query := `INSERT INTO "recipe" (id, "name", "instructions", "yield", "prep_time", "cook_time", "description", "user_id")
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+			if _, err := db.Exec(query, rec.ID, rec.Name, rec.Instructions, rec.Yield, rec.PrepTime,
+				rec.CookTime, rec.Description, rec.UserID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+
+			for _, ing := range rec.Ingredients {
+				query := `INSERT INTO "ingredient" (id, "name", "quantity", "measure", "recipe_id")
+				VALUES ($1, $2, $3, $4, $5)`
+				if _, err := db.Exec(query, ing.ID, ing.Name, ing.Quantity, ing.Measure, ing.RecipeID); err != nil {
+					t.Error(query)
+					t.Fatal(err)
+				}
+			}
+		}
+
+	}
+
+	return &idToMenu
+}
+
+// HelperCleanDownModels deletes from all model tables
+func HelperCleanDownModels(t *testing.T, db *sql.DB) {
+	if _, err := db.Exec(`DELETE FROM "ingredient"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "recipe"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "menu"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "user"`); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // HelperLoadFixture loads a fixture from a file
 func HelperLoadFixture(t *testing.T, path string) []byte {
 	bytes, err := ioutil.ReadFile(path)
@@ -100,51 +161,51 @@ func HelperLoadFixture(t *testing.T, path string) []byte {
 	return bytes
 }
 
-// HelperSetupModels runs migrations, creates users and returns a db connection
-func HelperSetupModels(t *testing.T) (*sql.DB, string, func()) {
-	cfg, err := config.Load("../../config.test.json")
+/* The following two functions aren't performed within 1 connection for a couple of reasons.
+A main driver is this issue https://github.com/mattes/migrate/issues/297 so this is an attempt
+to address it as it's something being experienced in the tests.
+*/
+
+// HelperDatabaseConnection creates and returns a db connection
+func HelperDatabaseConnection() (*sql.DB, string, func()) {
+	cfg, err := config.Load("../config.test.json")
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 
 	openDb, err := sql.Open(cfg.DbType, cfg.DbString)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 
-	driver, err := postgres.WithInstance(openDb, &postgres.Config{})
+	teardown := func() {
+		if err := openDb.Close(); err != nil {
+			panic(err)
+		}
+	}
+
+	return openDb, cfg.DbType, teardown
+}
+
+// HelperMigrate runs the database migrations
+func HelperMigrate() {
+	cfg, err := config.Load("../../config.test.json")
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance("file://../../migrations/", "postgres", driver)
-
+	m, err := migrate.New("file://../../migrations/", cfg.DbString)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
+
+	defer m.Close()
 
 	if err := m.Down(); err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	if err := m.Up(); err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
-
-	HelperCreateUsers(t, openDb, "../testdata/users.json")
-
-	if err := openDb.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	openDb, err = sql.Open(cfg.DbType, cfg.DbString)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	down := func() {
-		openDb.Close()
-	}
-
-	return openDb, cfg.DbType, down
 }

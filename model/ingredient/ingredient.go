@@ -25,7 +25,7 @@ func (i Ingredient) String() string {
 
 // CreateMany creates many ingredients for a given recipe id using a transaction
 func CreateMany(tx db.Transaction, ingredients []Ingredient, recipeID int) error {
-	query := "INSERT INTO ingredient (name, measure, quantity, recipe_id) VALUES (?, ?, ?, ?);"
+	query := `INSERT INTO "ingredient" (name, measure, quantity, recipe_id) VALUES (?, ?, ?, ?);`
 	for _, ing := range ingredients {
 		if _, err := tx.Exec(query, ing.Name, ing.Measure, ing.Quantity, recipeID); err != nil {
 			return err
