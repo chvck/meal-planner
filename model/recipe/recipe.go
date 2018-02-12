@@ -170,23 +170,23 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var menuID int
 	var recipeIDs []int
-	var recipeIDToRecipe map[int]Recipe
+	recipeIDToRecipe := make(map[int]Recipe)
 	menuIDToRecipe := make(map[int][]Recipe)
 
 	rows, err := dataStore.Query(
-		fmt.Sprintf(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, mr.menu_id
+		fmt.Sprintf(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id, mr.menu_id
 				FROM recipe r
 				JOIN menu_to_recipe mr ON mr.recipe_id = r.id
 				WHERE mr.menu_id IN (%v)
 				ORDER BY mr.menu_id`,
-			in))
+			in), ids...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		r := Recipe{}
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &menuID)
+		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &menuID)
 
 		recipeIDs = append(recipeIDs, r.ID)
 		recipeIDToRecipe[r.ID] = r

@@ -120,6 +120,13 @@ func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu
 				t.Fatal(err)
 			}
 
+			query = `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
+			VALUES ($1, $2)`
+			if _, err := db.Exec(query, m.ID, rec.ID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+
 			for _, ing := range rec.Ingredients {
 				query := `INSERT INTO "ingredient" (id, "name", "quantity", "measure", "recipe_id")
 				VALUES ($1, $2, $3, $4, $5)`
@@ -128,6 +135,7 @@ func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu
 					t.Fatal(err)
 				}
 			}
+
 		}
 
 	}
@@ -138,6 +146,9 @@ func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu
 // HelperCleanDownModels deletes from all model tables
 func HelperCleanDownModels(t *testing.T, db *sql.DB) {
 	if _, err := db.Exec(`DELETE FROM "ingredient"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "menu_to_recipe"`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`DELETE FROM "recipe"`); err != nil {

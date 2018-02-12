@@ -35,7 +35,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 	}
 
 	recipes, err := recipe.ForMenus(dataStore, m.ID)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	if recipes[m.ID] != nil {

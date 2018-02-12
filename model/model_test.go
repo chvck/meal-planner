@@ -337,7 +337,7 @@ func assertMenu(t *testing.T, expected *menu.Menu, actual *menu.Menu) {
 	assert.Equal(t, expected.UserID, actual.UserID)
 
 	// expectedrecipes := expected.Recipes
-	// // Slices of different orders aren't equal
+	// Slices of different orders aren't equal
 	// sort.SliceStable(recipes, func(i, j int) bool {
 	// 	return recipes[i].ID < recipes[j].ID
 	// })
@@ -345,7 +345,7 @@ func assertMenu(t *testing.T, expected *menu.Menu, actual *menu.Menu) {
 	// sort.SliceStable(actual.Ingredients, func(i, j int) bool {
 	// 	return actual.Ingredients[i].ID < actual.Ingredients[j].ID
 	// })
-	// assert.Equal(t, expected.Recipes, actual.Recipes)
+	assert.Equal(t, expected.Recipes, actual.Recipes)
 }
 
 func beforeEach(t *testing.T) {
