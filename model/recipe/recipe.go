@@ -22,6 +22,7 @@ type Recipe struct {
 	CookTime     null.Int                `db:"cook_time" json:"cook_time"`
 	Description  null.String             `db:"description" json:"description"`
 	Ingredients  []ingredient.Ingredient `json:"ingredients"`
+	MenuID       int                     `db:"menu_id" json:"menu_id"`
 }
 
 // NewRecipe creates a new Recipe
@@ -168,17 +169,15 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 // ForMenus returns the recipes for a list of menu IDs. Recipes are keyed by menu ID
 func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
-	var menuID int
-	var recipeIDs []int
-	recipeIDToRecipe := make(map[int]Recipe)
-	menuIDToRecipe := make(map[int][]Recipe)
+	var recipeIDs []interface{}
+	var recipes []Recipe
 
 	rows, err := dataStore.Query(
 		fmt.Sprintf(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id, mr.menu_id
 				FROM recipe r
 				JOIN menu_to_recipe mr ON mr.recipe_id = r.id
 				WHERE mr.menu_id IN (%v)
-				ORDER BY mr.menu_id`,
+				ORDER BY mr.menu_id, r.id`,
 			in), ids...)
 	if err != nil {
 		return nil, err
@@ -186,35 +185,37 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 	defer rows.Close()
 	for rows.Next() {
 		r := Recipe{}
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &menuID)
+		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &r.MenuID)
 
 		recipeIDs = append(recipeIDs, r.ID)
-		recipeIDToRecipe[r.ID] = r
-		arr := menuIDToRecipe[menuID]
-		arr = append(arr, r)
-		menuIDToRecipe[menuID] = arr
+		recipes = append(recipes, r)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	if len(menuIDToRecipe) == 0 {
-		return menuIDToRecipe, nil
+	if len(recipeIDs) == 0 {
+		return make(map[int][]Recipe), nil
 	}
 
-	ingredients, err := ingredient.ForRecipes(dataStore, ids...)
+	recipeIDToIngredients, err := ingredient.ForRecipes(dataStore, recipeIDs...)
 	if err != nil {
 		return nil, err
 	}
-	for rID, ing := range ingredients {
-		recipe := recipeIDToRecipe[rID]
+	menuIDToRecipe := make(map[int][]Recipe)
+	for _, rec := range recipes {
+		rec.Ingredients = recipeIDToIngredients[rec.ID]
 
-		recipe.Ingredients = ing
+		_, ok := menuIDToRecipe[rec.MenuID]
+		if !ok {
+			menuIDToRecipe[rec.ID] = make([]Recipe, 0)
+		}
+
+		menuIDToRecipe[rec.MenuID] = append(menuIDToRecipe[rec.MenuID], rec)
 	}
 
 	return menuIDToRecipe, nil
-
 }
 
 // Create creates the specific Recipe

@@ -49,7 +49,8 @@ func TestMenuOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	m, err := menu.One(&adapter, expected.ID, 1)
 
 	assert.Nil(t, err)
-	assertMenu(t, &expected, m)
+	assert.NotNil(t, m)
+	assert.Equal(t, &expected, m)
 }
 
 func TestRecipeOneWhenCorrectUserAndIdThenOK(t *testing.T) {
@@ -326,26 +327,6 @@ func assertRecipe(t *testing.T, expected *recipe.Recipe, actual *recipe.Recipe) 
 		return actual.Ingredients[i].ID < actual.Ingredients[j].ID
 	})
 	assert.Equal(t, expected.Ingredients, actual.Ingredients)
-}
-
-func assertMenu(t *testing.T, expected *menu.Menu, actual *menu.Menu) {
-	assert.NotNil(t, actual)
-	// assert.Equal(t, expected, actual)
-	assert.Equal(t, expected.ID, actual.ID)
-	assert.Equal(t, expected.Name, actual.Name)
-	assert.Equal(t, expected.Description, actual.Description)
-	assert.Equal(t, expected.UserID, actual.UserID)
-
-	// expectedrecipes := expected.Recipes
-	// Slices of different orders aren't equal
-	// sort.SliceStable(recipes, func(i, j int) bool {
-	// 	return recipes[i].ID < recipes[j].ID
-	// })
-
-	// sort.SliceStable(actual.Ingredients, func(i, j int) bool {
-	// 	return actual.Ingredients[i].ID < actual.Ingredients[j].ID
-	// })
-	assert.Equal(t, expected.Recipes, actual.Recipes)
 }
 
 func beforeEach(t *testing.T) {
