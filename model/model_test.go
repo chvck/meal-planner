@@ -53,6 +53,26 @@ func TestMenuOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	assert.Equal(t, &expected, m)
 }
 
+func TestMenuOneWhenWrongUserAndIdThenNil(t *testing.T) {
+	beforeEach(t)
+	testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	m, err := menu.One(&adapter, 1, 2)
+
+	assert.Nil(t, err)
+	assert.Nil(t, m)
+}
+
+func TestMenuOneWhenWrongIdThenNil(t *testing.T) {
+	beforeEach(t)
+	testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	m, err := menu.One(&adapter, 100, 1)
+
+	assert.Nil(t, err)
+	assert.Nil(t, m)
+}
+
 func TestRecipeOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	beforeEach(t)
 
