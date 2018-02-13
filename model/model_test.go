@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 	openDb, dbType, teardown := testhelper.HelperDatabaseConnection()
 	defer teardown()
 	sqlDb = openDb
-	// testhelper.HelperMigrate()
+	testhelper.HelperMigrate()
 
 	if err := adapter.InitializeWithDb(sqlx.NewDb(openDb, dbType)); err != nil {
 		panic(err)

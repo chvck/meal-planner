@@ -12,6 +12,7 @@ import (
 	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/mattes/migrate"
 	_ "github.com/mattes/migrate/database/postgres"
+	_ "github.com/mattes/migrate/source/file"
 
 	"github.com/chvck/meal-planner/model/ingredient"
 	"github.com/chvck/meal-planner/model/user"
@@ -200,12 +201,12 @@ func HelperDatabaseConnection() (*sql.DB, string, func()) {
 
 // HelperMigrate runs the database migrations
 func HelperMigrate() {
-	cfg, err := config.Load("../../config.test.json")
+	cfg, err := config.Load("../config.test.json")
 	if err != nil {
 		panic(err)
 	}
 
-	m, err := migrate.New("file://../../migrations/", cfg.DbString)
+	m, err := migrate.New("file://../migrations/", cfg.DbString)
 	if err != nil {
 		panic(err)
 	}
