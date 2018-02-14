@@ -39,6 +39,8 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+// MENU TESTS
+
 func TestMenuOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	beforeEach(t)
 	menus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
@@ -118,6 +120,8 @@ func TestMenuAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
 	assert.Equal(t, 1, len(*menus))
 	assert.Equal(t, expectedMenus, *menus)
 }
+
+// RECIPE TESTS
 
 func TestRecipeOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	beforeEach(t)
@@ -318,7 +322,6 @@ func TestRecipeCreate(t *testing.T) {
 	assert.Equal(t, r.Description, actualRecipe.Description)
 	assert.Equal(t, r.Instructions, actualRecipe.Instructions)
 
-	// Work out a way to ensure that the ingredients are actually created correctly
 	assert.Equal(t, len(r.Ingredients), len(actualIngredients))
 	assert.Equal(t, r.Ingredients[0].Name, actualIngredients[0].Name)
 	assert.Equal(t, r.Ingredients[0].Measure, actualIngredients[0].Measure)
@@ -362,6 +365,158 @@ func TestRecipeCreateWhenEmptyInstructionsThenError(t *testing.T) {
 	assert.Nil(t, id)
 }
 
+func TestRecipeUpdate(t *testing.T) {
+	beforeEach(t)
+
+	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
+	var r recipe.Recipe
+	err := json.Unmarshal(f, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ID = 1
+
+	if _, err := sqlDb.Exec(
+		`INSERT INTO "recipe" (id, name, instructions, yield, prep_time, cook_time, description, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;`,
+		r.ID, r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, ing := range r.Ingredients {
+		ing.ID = i
+		if _, err := sqlDb.Exec(
+			`INSERT INTO "ingredient" (id, name, measure, quantity, recipe_id) VALUES ($1, $2, $3, $4, $5);`,
+			ing.ID, ing.Name, ing.Measure, ing.Quantity, r.ID,
+		); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	newIng1 := ingredient.Ingredient{
+		Name:     "Another ingredient",
+		Quantity: 4,
+	}
+	newIngredients := []ingredient.Ingredient{newIng1}
+
+	r.Name = "Another recipe"
+	r.Instructions = "Another set of instructions"
+	r.Ingredients = newIngredients
+
+	if err := recipe.Update(&adapter, r, r.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	actualRecipe := recipe.Recipe{}
+	row := sqlDb.QueryRow(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
+		FROM recipe r where r.id = $1;`, r.ID)
+
+	err = row.Scan(&actualRecipe.ID, &actualRecipe.Name, &actualRecipe.Instructions, &actualRecipe.Description, &actualRecipe.Yield,
+		&actualRecipe.PrepTime, &actualRecipe.CookTime, &actualRecipe.UserID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var actualIngredients []ingredient.Ingredient
+	rows, err := sqlDb.Query(fmt.Sprintf(`SELECT i.id, i.name, i.measure, i.quantity, i.recipe_id
+		FROM ingredient i WHERE i.recipe_id = %v;`, r.ID))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		i := ingredient.Ingredient{}
+		rows.Scan(&i.ID, &i.Name, &i.Measure, &i.Quantity, &i.RecipeID)
+
+		actualIngredients = append(actualIngredients, i)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.Equal(t, r.Name, actualRecipe.Name)
+	assert.Equal(t, r.CookTime, actualRecipe.CookTime)
+	assert.Equal(t, r.PrepTime, actualRecipe.PrepTime)
+	assert.Equal(t, r.Yield, actualRecipe.Yield)
+	assert.Equal(t, r.Description, actualRecipe.Description)
+	assert.Equal(t, r.Instructions, actualRecipe.Instructions)
+
+	assert.Equal(t, 1, len(actualIngredients))
+	assert.Equal(t, "Another ingredient", actualIngredients[0].Name)
+	assert.Equal(t, null.String{NullString: sql.NullString{}}, actualIngredients[0].Measure)
+	assert.Equal(t, 4, actualIngredients[0].Quantity)
+}
+
+func TestRecipeUpdateWhenEmptyNameThenError(t *testing.T) {
+	beforeEach(t)
+
+	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
+	var r recipe.Recipe
+	err := json.Unmarshal(f, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ID = 1
+
+	if _, err := sqlDb.Exec(
+		`INSERT INTO "recipe" (id, name, instructions, yield, prep_time, cook_time, description, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;`,
+		r.ID, r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, ing := range r.Ingredients {
+		ing.ID = i
+		if _, err := sqlDb.Exec(
+			`INSERT INTO "ingredient" (id, name, measure, quantity, recipe_id) VALUES ($1, $2, $3, $4, $5);`,
+			ing.ID, ing.Name, ing.Measure, ing.Quantity, r.ID,
+		); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	r.Name = ""
+
+	err = recipe.Update(&adapter, r, 1)
+
+	assert.NotNil(t, err)
+}
+
+func TestRecipeUpdateWhenEmptyInstructionsThenError(t *testing.T) {
+	beforeEach(t)
+
+	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
+	var r recipe.Recipe
+	err := json.Unmarshal(f, &r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.ID = 1
+
+	if _, err := sqlDb.Exec(
+		`INSERT INTO "recipe" (id, name, instructions, yield, prep_time, cook_time, description, user_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id;`,
+		r.ID, r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.UserID); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, ing := range r.Ingredients {
+		ing.ID = i
+		if _, err := sqlDb.Exec(
+			`INSERT INTO "ingredient" (id, name, measure, quantity, recipe_id) VALUES ($1, $2, $3, $4, $5);`,
+			ing.ID, ing.Name, ing.Measure, ing.Quantity, r.ID,
+		); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	r.Instructions = ""
+
+	err = recipe.Update(&adapter, r, 1)
+
+	assert.NotNil(t, err)
+}
+
+// INGREDIENT TESTS
+
 func TestIngredientString(t *testing.T) {
 	i := ingredient.Ingredient{
 		ID:       1,
@@ -373,6 +528,8 @@ func TestIngredientString(t *testing.T) {
 
 	assert.Equal(t, "2 tbsp Paprika", fmt.Sprint(i))
 }
+
+// OTHER
 
 func beforeEach(t *testing.T) {
 	testhelper.HelperCleanDownModels(t, sqlDb)

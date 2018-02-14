@@ -255,6 +255,10 @@ func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) (*int, erro
 
 // Update updates the specific Recipe
 func Update(dataStore model.IDataStoreAdapter, r Recipe, userID int) error {
+	if err := validate(r); err != nil {
+		return err
+	}
+
 	tx, err := dataStore.NewTransaction()
 	if err != nil {
 		return err
