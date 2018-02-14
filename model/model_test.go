@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
 	"testing"
 
 	"github.com/chvck/meal-planner/db"
@@ -132,7 +131,7 @@ func TestRecipeOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	recipe, err := recipe.One(&adapter, expected.ID, 1)
 
 	assert.Nil(t, err)
-	assertRecipe(t, &expected, recipe)
+	assert.Equal(t, expected, *recipe)
 }
 
 func TestRecipeOneWhenWrongUserThenNil(t *testing.T) {
@@ -175,7 +174,7 @@ func TestRecipeAllWithLimit(t *testing.T) {
 	for _, recipe := range *recipes {
 		expected := expectedRecipes[recipe.ID]
 		expected.Ingredients = ingredients[expected.ID]
-		assertRecipe(t, &expected, &recipe)
+		assert.Equal(t, expected, recipe)
 	}
 }
 
@@ -204,7 +203,7 @@ func TestRecipeAllWithLimitWhenLimitThenLimitedResults(t *testing.T) {
 	actual := (*recipes)[0]
 	expected := expectedRecipes[1]
 	expected.Ingredients = ingredients[1]
-	assertRecipe(t, &expected, &actual)
+	assert.Equal(t, expected, actual)
 }
 
 func TestRecipeAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
@@ -220,7 +219,7 @@ func TestRecipeAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
 	actual := (*recipes)[0]
 	expected := expectedRecipes[2]
 	expected.Ingredients = ingredients[2]
-	assertRecipe(t, &expected, &actual)
+	assert.Equal(t, expected, actual)
 }
 
 func TestRecipeFindByIngredientNames1Name(t *testing.T) {
@@ -236,7 +235,7 @@ func TestRecipeFindByIngredientNames1Name(t *testing.T) {
 	for _, recipe := range *recipes {
 		expected := expectedRecipes[recipe.ID]
 		expected.Ingredients = ingredients[expected.ID]
-		assertRecipe(t, &expected, &recipe)
+		assert.Equal(t, expected, recipe)
 	}
 }
 
@@ -253,7 +252,7 @@ func TestRecipeFindByIngredientNamesWhenMultipleNamesThenOr(t *testing.T) {
 	for _, recipe := range *recipes {
 		expected := expectedRecipes[recipe.ID]
 		expected.Ingredients = ingredients[expected.ID]
-		assertRecipe(t, &expected, &recipe)
+		assert.Equal(t, expected, recipe)
 	}
 }
 
@@ -373,27 +372,6 @@ func TestIngredientString(t *testing.T) {
 	}
 
 	assert.Equal(t, "2 tbsp Paprika", fmt.Sprint(i))
-}
-
-func assertRecipe(t *testing.T, expected *recipe.Recipe, actual *recipe.Recipe) {
-	assert.NotNil(t, actual)
-	assert.Equal(t, expected.ID, actual.ID)
-	assert.Equal(t, expected.Name, actual.Name)
-	assert.Equal(t, expected.CookTime, actual.CookTime)
-	assert.Equal(t, expected.PrepTime, actual.PrepTime)
-	assert.Equal(t, expected.Yield, actual.Yield)
-	assert.Equal(t, expected.Description, actual.Description)
-	assert.Equal(t, expected.Instructions, actual.Instructions)
-
-	// Slices of different orders aren't equal
-	sort.SliceStable(expected.Ingredients, func(i, j int) bool {
-		return expected.Ingredients[i].ID < expected.Ingredients[j].ID
-	})
-
-	sort.SliceStable(actual.Ingredients, func(i, j int) bool {
-		return actual.Ingredients[i].ID < actual.Ingredients[j].ID
-	})
-	assert.Equal(t, expected.Ingredients, actual.Ingredients)
 }
 
 func beforeEach(t *testing.T) {

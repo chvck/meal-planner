@@ -44,7 +44,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 		where = fmt.Sprintf("%v OR i.name = ?", where)
 	}
 	query := fmt.Sprintf(
-		`SELECT DISTINCT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
+		`SELECT DISTINCT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM ingredient i
 		JOIN recipe r ON r.id = i.recipe_id
 		WHERE %v;`,
@@ -58,7 +58,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 	defer rows.Close()
 	for rows.Next() {
 		r := NewRecipe()
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime)
+		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID)
 
 		m[r.ID] = r
 		ids = append(ids, r.ID)
@@ -92,7 +92,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 // One retrieves a single Recipe by id
 func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error) {
 	row := dataStore.QueryOne(
-		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
+		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
 		WHERE r.id = ? and r.user_id = ?;`,
 		id,
@@ -100,7 +100,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 	)
 
 	r := NewRecipe()
-	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime); err == sql.ErrNoRows {
+	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID); err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
 	idToRecipe := make(map[int]*Recipe)
 	var recipeIDs []interface{}
-	rows, err := dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time
+	rows, err := dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
 		WHERE r.user_id = ?
 		ORDER BY r.id
@@ -132,7 +132,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 	defer rows.Close()
 	for rows.Next() {
 		r := NewRecipe()
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime)
+		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID)
 
 		idToRecipe[r.ID] = r
 		recipeIDs = append(recipeIDs, r.ID)
