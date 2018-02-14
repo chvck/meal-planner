@@ -209,7 +209,7 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 
 		_, ok := menuIDToRecipe[rec.MenuID]
 		if !ok {
-			menuIDToRecipe[rec.ID] = make([]Recipe, 0)
+			menuIDToRecipe[rec.MenuID] = make([]Recipe, 0)
 		}
 
 		menuIDToRecipe[rec.MenuID] = append(menuIDToRecipe[rec.MenuID], rec)

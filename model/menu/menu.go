@@ -43,3 +43,53 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 	}
 	return &m, nil
 }
+
+// AllWithLimit retrieves x menus starting from an offset
+func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Menu, error) {
+	idToMenu := make(map[int]*Menu)
+	var menuIDs []interface{}
+	rows, err := dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
+		FROM menu m
+		WHERE m.user_id = ?
+		ORDER BY m.id
+		LIMIT ? OFFSET ?;`,
+		userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		m := Menu{}
+		rows.Scan(&m.ID, &m.Name, &m.Description, &m.UserID)
+
+		idToMenu[m.ID] = &m
+		menuIDs = append(menuIDs, m.ID)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// if there aren't any recipes then return empty slice
+	if len(idToMenu) == 0 {
+		menus := make([]Menu, 0)
+		return &menus, nil
+	}
+
+	recipes, err := recipe.ForMenus(dataStore, menuIDs...)
+	if err != nil {
+		return nil, err
+	}
+	for mID, recs := range recipes {
+		m := idToMenu[mID]
+
+		m.Recipes = recs
+	}
+
+	menus := make([]Menu, 0, len(idToMenu))
+	for _, m := range idToMenu {
+		menus = append(menus, *m)
+	}
+
+	return &menus, nil
+}

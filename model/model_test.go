@@ -73,6 +73,53 @@ func TestMenuOneWhenWrongIdThenNil(t *testing.T) {
 	assert.Nil(t, m)
 }
 
+func TestMenuAllWithLimit(t *testing.T) {
+	beforeEach(t)
+
+	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	menus, err := menu.AllWithLimit(&adapter, 10, 0, 1)
+	expectedMenus := []menu.Menu{allMenus[1], allMenus[2]}
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(*menus))
+	assert.Equal(t, expectedMenus, *menus)
+}
+
+func TestMenuAllWithLimitWhenNoResultsThenEmptySlice(t *testing.T) {
+	beforeEach(t)
+
+	testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	menus, err := menu.AllWithLimit(&adapter, 10, 0, 10)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 0, len(*menus))
+}
+
+func TestMenuAllWithLimitWhenLimitThenLimitedResults(t *testing.T) {
+	beforeEach(t)
+
+	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	menus, err := menu.AllWithLimit(&adapter, 1, 0, 1)
+	expectedMenus := []menu.Menu{allMenus[1]}
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(*menus))
+	assert.Equal(t, expectedMenus, *menus)
+}
+
+func TestMenuAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
+	beforeEach(t)
+
+	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
+
+	menus, err := menu.AllWithLimit(&adapter, 10, 1, 1)
+	expectedMenus := []menu.Menu{allMenus[2]}
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(*menus))
+	assert.Equal(t, expectedMenus, *menus)
+}
+
 func TestRecipeOneWhenCorrectUserAndIdThenOK(t *testing.T) {
 	beforeEach(t)
 
