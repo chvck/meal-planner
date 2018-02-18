@@ -46,8 +46,8 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 
 // AllWithLimit retrieves x menus starting from an offset
 func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Menu, error) {
-	idToMenu := make(map[int]*Menu)
 	var menuIDs []interface{}
+	var menus []Menu
 	rows, err := dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
 		WHERE m.user_id = ?
@@ -60,35 +60,33 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 	defer rows.Close()
 	for rows.Next() {
 		m := Menu{}
-		rows.Scan(&m.ID, &m.Name, &m.Description, &m.UserID)
+		if err := rows.Scan(&m.ID, &m.Name, &m.Description, &m.UserID); err != nil {
+			return nil, err
+		}
 
-		idToMenu[m.ID] = &m
 		menuIDs = append(menuIDs, m.ID)
+		menus = append(menus, m)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	// if there aren't any recipes then return empty slice
-	if len(idToMenu) == 0 {
-		menus := make([]Menu, 0)
+	// if there aren't any menus then return empty slice
+	if len(menus) == 0 {
 		return &menus, nil
 	}
 
-	recipes, err := recipe.ForMenus(dataStore, menuIDs...)
+	recipesByMenuID, err := recipe.ForMenus(dataStore, menuIDs...)
 	if err != nil {
 		return nil, err
 	}
-	for mID, recs := range recipes {
-		m := idToMenu[mID]
 
-		m.Recipes = recs
-	}
-
-	menus := make([]Menu, 0, len(idToMenu))
-	for _, m := range idToMenu {
-		menus = append(menus, *m)
+	for i, m := range menus {
+		recipes, ok := recipesByMenuID[m.ID]
+		if ok {
+			menus[i].Recipes = recipes
+		}
 	}
 
 	return &menus, nil

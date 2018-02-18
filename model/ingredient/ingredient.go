@@ -45,7 +45,7 @@ func DeleteAllByRecipe(tx db.Transaction, recipeID int) error {
 	return nil
 }
 
-// ForRecipes returns the ingredients for a list of recipe ids. Ingredients are keyed by recipe ID
+// ForRecipes returns the ingredients for a list of recipe ids. Ingredients are keyed by ID
 func ForRecipes(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Ingredient, error) {
 	m := make(map[int][]Ingredient)
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")

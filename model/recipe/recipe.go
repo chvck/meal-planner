@@ -22,12 +22,11 @@ type Recipe struct {
 	CookTime     null.Int                `db:"cook_time" json:"cook_time"`
 	Description  null.String             `db:"description" json:"description"`
 	Ingredients  []ingredient.Ingredient `json:"ingredients"`
-	MenuID       int                     `db:"menu_id" json:"menu_id"`
 }
 
-// NewRecipe creates a new Recipe
-func NewRecipe() *Recipe {
-	return &Recipe{ID: -1, Ingredients: []ingredient.Ingredient{}}
+type recipeWithMenuID struct {
+	Recipe
+	MenuID int `db:"menu_id" json:"menu_id"`
 }
 
 // FindByIngredientNames executes a search for recipes by ingredient name
@@ -57,10 +56,10 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 	}
 	defer rows.Close()
 	for rows.Next() {
-		r := NewRecipe()
+		r := Recipe{}
 		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID)
 
-		m[r.ID] = r
+		m[r.ID] = &r
 		ids = append(ids, r.ID)
 	}
 
@@ -99,7 +98,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 		userID,
 	)
 
-	r := NewRecipe()
+	r := Recipe{}
 	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID); err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -113,13 +112,13 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 	if ingredients[r.ID] != nil {
 		r.Ingredients = ingredients[r.ID]
 	}
-	return r, nil
+	return &r, nil
 }
 
 // AllWithLimit retrieves x recipes starting from an offset
 func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
-	idToRecipe := make(map[int]*Recipe)
 	var recipeIDs []interface{}
+	var recipes []Recipe
 	rows, err := dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
 		WHERE r.user_id = ?
@@ -131,10 +130,12 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 	}
 	defer rows.Close()
 	for rows.Next() {
-		r := NewRecipe()
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID)
+		r := Recipe{}
+		if err := rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID); err != nil {
+			return nil, err
+		}
 
-		idToRecipe[r.ID] = r
+		recipes = append(recipes, r)
 		recipeIDs = append(recipeIDs, r.ID)
 	}
 
@@ -143,24 +144,20 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 	}
 
 	// if there aren't any recipes then return empty slice
-	if len(idToRecipe) == 0 {
-		recipes := make([]Recipe, 0, len(idToRecipe))
+	if len(recipes) == 0 {
 		return &recipes, nil
 	}
 
-	ingredients, err := ingredient.ForRecipes(dataStore, recipeIDs...)
+	ingredientsByRecipe, err := ingredient.ForRecipes(dataStore, recipeIDs...)
 	if err != nil {
 		return nil, err
 	}
-	for rID, ing := range ingredients {
-		recipe := idToRecipe[rID]
 
-		recipe.Ingredients = ing
-	}
-
-	recipes := make([]Recipe, 0, len(idToRecipe))
-	for _, recipe := range idToRecipe {
-		recipes = append(recipes, *recipe)
+	for i, recipe := range recipes {
+		ingredients, ok := ingredientsByRecipe[recipe.ID]
+		if ok {
+			recipes[i].Ingredients = ingredients
+		}
 	}
 
 	return &recipes, nil
@@ -170,7 +167,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var recipeIDs []interface{}
-	var recipes []Recipe
+	var recipes []recipeWithMenuID
 
 	rows, err := dataStore.Query(
 		fmt.Sprintf(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id, mr.menu_id
@@ -184,8 +181,10 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 	}
 	defer rows.Close()
 	for rows.Next() {
-		r := Recipe{}
-		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &r.MenuID)
+		r := recipeWithMenuID{}
+		if err := rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &r.MenuID); err != nil {
+			return nil, err
+		}
 
 		recipeIDs = append(recipeIDs, r.ID)
 		recipes = append(recipes, r)
@@ -195,7 +194,7 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 		return nil, err
 	}
 
-	if len(recipeIDs) == 0 {
+	if len(recipes) == 0 {
 		return make(map[int][]Recipe), nil
 	}
 
@@ -212,7 +211,7 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 			menuIDToRecipe[rec.MenuID] = make([]Recipe, 0)
 		}
 
-		menuIDToRecipe[rec.MenuID] = append(menuIDToRecipe[rec.MenuID], rec)
+		menuIDToRecipe[rec.MenuID] = append(menuIDToRecipe[rec.MenuID], rec.Recipe)
 	}
 
 	return menuIDToRecipe, nil
