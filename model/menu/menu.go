@@ -2,6 +2,8 @@ package menu
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/chvck/meal-planner/model"
 	"github.com/chvck/meal-planner/model/recipe"
@@ -15,6 +17,11 @@ type Menu struct {
 	Name        string          `db:"name" json:"name"`
 	Description null.String     `db:"description" json:"description"`
 	Recipes     []recipe.Recipe `json:"recipes"`
+}
+
+type menuWithPlannerID struct {
+	Menu
+	PlannerID int
 }
 
 // One retrieves a single Menu by id
@@ -90,4 +97,59 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 	}
 
 	return &menus, nil
+}
+
+// ForPlanners returns the menus for a list of planner IDs. Recipes are keyed by planner ID
+func ForPlanners(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Menu, error) {
+	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
+	var menuIDs []interface{}
+	var menus []menuWithPlannerID
+
+	rows, err := dataStore.Query(
+		fmt.Sprintf(`SELECT m.id, m.name, m.description, m.user_id, pm.planner_id
+				FROM menu m
+				JOIN planner_to_menu pm ON pm.menu_id = m.id
+				WHERE pm.planner_id IN (%v)
+				ORDER BY pm.planner_id, m.id`,
+			in), ids...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		m := menuWithPlannerID{}
+		if err := rows.Scan(&m.ID, &m.Name, &m.Description, &m.UserID, &m.PlannerID); err != nil {
+			return nil, err
+		}
+
+		menuIDs = append(menuIDs, m.ID)
+		menus = append(menus, m)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(menus) == 0 {
+		return make(map[int][]Menu), nil
+	}
+
+	recipesByMenuID, err := recipe.ForMenus(dataStore, menuIDs...)
+	if err != nil {
+		return nil, err
+	}
+
+	plannerIDToMenu := make(map[int][]Menu)
+	for _, m := range menus {
+		m.Recipes = recipesByMenuID[m.ID]
+
+		_, ok := plannerIDToMenu[m.PlannerID]
+		if !ok {
+			plannerIDToMenu[m.PlannerID] = make([]Menu, 0)
+		}
+
+		plannerIDToMenu[m.PlannerID] = append(plannerIDToMenu[m.PlannerID], m.Menu)
+	}
+
+	return plannerIDToMenu, nil
 }

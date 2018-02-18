@@ -9,6 +9,7 @@ import (
 
 	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/model/menu"
+	"github.com/chvck/meal-planner/model/planner"
 	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/mattes/migrate"
 	_ "github.com/mattes/migrate/database/postgres"
@@ -144,6 +145,63 @@ func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu
 	return &idToMenu
 }
 
+// HelperCreatePlanners writes planners + nested relations to the provided database using the fixtures at the path provided
+func HelperCreatePlanners(t *testing.T, db *sql.DB, path string) *map[int]planner.Planner {
+	bytes := HelperLoadFixture(t, path)
+	var planners []planner.Planner
+	if err := json.Unmarshal(bytes, &planners); err != nil {
+		t.Fatal(err)
+	}
+
+	idToPlanner := make(map[int]planner.Planner)
+	for _, p := range planners {
+		query := `INSERT INTO "planner" (id, "when", "for", "user_id")
+		VALUES ($1, $2, $3, $4)`
+		if _, err := db.Exec(query, p.ID, p.When, p.For, p.UserID); err != nil {
+			t.Error(query)
+			t.Fatal(err)
+		}
+
+		for _, m := range p.Menus {
+			query := `INSERT INTO "menu" (id, "name", "description", "user_id")
+			VALUES ($1, $2, $3, $4)`
+			if _, err := db.Exec(query, m.ID, m.Name, m.Description, m.UserID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+
+			query = `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
+			VALUES ($1, $2)`
+			if _, err := db.Exec(query, p.ID, m.ID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+
+			createRecipes(t, db, m.Recipes, func(recipeID int) {
+				query = `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
+				VALUES ($1, $2)`
+				if _, err := db.Exec(query, m.ID, recipeID); err != nil {
+					t.Error(query)
+					t.Fatal(err)
+				}
+			})
+		}
+
+		createRecipes(t, db, p.Recipes, func(recipeID int) {
+			query = `INSERT INTO "planner_to_recipe" ("planner_id", "recipe_id")
+			VALUES ($1, $2)`
+			if _, err := db.Exec(query, p.ID, recipeID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+		})
+
+		idToPlanner[p.ID] = p
+	}
+
+	return &idToPlanner
+}
+
 // HelperCleanDownModels deletes from all model tables
 func HelperCleanDownModels(t *testing.T, db *sql.DB) {
 	if _, err := db.Exec(`DELETE FROM "ingredient"`); err != nil {
@@ -152,10 +210,19 @@ func HelperCleanDownModels(t *testing.T, db *sql.DB) {
 	if _, err := db.Exec(`DELETE FROM "menu_to_recipe"`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(`DELETE FROM "planner_to_recipe"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "planner_to_menu"`); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := db.Exec(`DELETE FROM "recipe"`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`DELETE FROM "menu"`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM "planner"`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`DELETE FROM "user"`); err != nil {
@@ -219,5 +286,28 @@ func HelperMigrate() {
 
 	if err := m.Up(); err != nil {
 		fmt.Println(err)
+	}
+}
+
+func createRecipes(t *testing.T, db *sql.DB, recipes []recipe.Recipe, joinFunc func(int)) {
+	for _, rec := range recipes {
+		query := `INSERT INTO "recipe" (id, "name", "instructions", "yield", "prep_time", "cook_time", "description", "user_id")
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+		if _, err := db.Exec(query, rec.ID, rec.Name, rec.Instructions, rec.Yield, rec.PrepTime,
+			rec.CookTime, rec.Description, rec.UserID); err != nil {
+			t.Error(query)
+			t.Fatal(err)
+		}
+
+		joinFunc(rec.ID)
+
+		for _, ing := range rec.Ingredients {
+			query := `INSERT INTO "ingredient" (id, "name", "quantity", "measure", "recipe_id")
+			VALUES ($1, $2, $3, $4, $5)`
+			if _, err := db.Exec(query, ing.ID, ing.Name, ing.Quantity, ing.Measure, ing.RecipeID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
+		}
 	}
 }

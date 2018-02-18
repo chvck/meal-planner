@@ -6,16 +6,17 @@ import (
 
 	"github.com/chvck/meal-planner/db"
 	"github.com/chvck/meal-planner/model"
+	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v3"
 )
 
 // Ingredient is the model for the ingredient table
 type Ingredient struct {
-	ID       int         `db:"id" json:"id"`
-	RecipeID int         `db:"recipe_id" json:"recipe_id"`
-	Name     string      `db:"name"`
-	Measure  null.String `db:"measure" json:"measure"`
-	Quantity int         `db:"quantity" json:"quantity"`
+	ID       int             `db:"id" json:"id"`
+	RecipeID int             `db:"recipe_id" json:"recipe_id"`
+	Name     string          `db:"name"`
+	Measure  null.String     `db:"measure" json:"measure"`
+	Quantity decimal.Decimal `db:"quantity" json:"quantity"`
 }
 
 // String is the string representation of an Ingredient
@@ -69,7 +70,7 @@ func ForRecipes(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int]
 			ingID   int
 			ingName string
 			mName   null.String
-			q       int
+			q       decimal.Decimal
 		)
 		if err := rows.Scan(&ingID, &rID, &ingName, &mName, &q); err != nil {
 			return nil, err

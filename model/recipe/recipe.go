@@ -29,6 +29,11 @@ type recipeWithMenuID struct {
 	MenuID int `db:"menu_id" json:"menu_id"`
 }
 
+type recipeWithPlannerID struct {
+	Recipe
+	PlannerID int `db:"planner_id" json:"planner_id"`
+}
+
 // FindByIngredientNames executes a search for recipes by ingredient name
 func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface{}) (*[]Recipe, error) {
 	if len(names) == 0 {
@@ -215,6 +220,60 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 	}
 
 	return menuIDToRecipe, nil
+}
+
+// ForPlanners returns the recipes for a list of planner IDs. Recipes are keyed by planner ID
+func ForPlanners(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
+	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
+	var recipeIDs []interface{}
+	var recipes []recipeWithPlannerID
+
+	rows, err := dataStore.Query(
+		fmt.Sprintf(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id, pr.planner_id
+				FROM recipe r
+				JOIN planner_to_recipe pr ON pr.recipe_id = r.id
+				WHERE pr.planner_id IN (%v)
+				ORDER BY pr.planner_id, r.id`,
+			in), ids...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		r := recipeWithPlannerID{}
+		if err := rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID, &r.PlannerID); err != nil {
+			return nil, err
+		}
+
+		recipeIDs = append(recipeIDs, r.ID)
+		recipes = append(recipes, r)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(recipes) == 0 {
+		return make(map[int][]Recipe), nil
+	}
+
+	recipeIDToIngredients, err := ingredient.ForRecipes(dataStore, recipeIDs...)
+	if err != nil {
+		return nil, err
+	}
+	plannerIDToRecipe := make(map[int][]Recipe)
+	for _, rec := range recipes {
+		rec.Ingredients = recipeIDToIngredients[rec.ID]
+
+		_, ok := plannerIDToRecipe[rec.PlannerID]
+		if !ok {
+			plannerIDToRecipe[rec.PlannerID] = make([]Recipe, 0)
+		}
+
+		plannerIDToRecipe[rec.PlannerID] = append(plannerIDToRecipe[rec.PlannerID], rec.Recipe)
+	}
+
+	return plannerIDToRecipe, nil
 }
 
 // Create creates the specific Recipe

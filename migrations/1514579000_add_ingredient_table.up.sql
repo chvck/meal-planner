@@ -3,6 +3,6 @@ CREATE TABLE ingredient (
   recipe_id INT REFERENCES recipe (id)     NOT NULL,
   name      TEXT                           NOT NULL,
   measure   TEXT,
-  quantity  SMALLINT                       NOT NULL,
+  quantity  DECIMAL                        NOT NULL,
   UNIQUE(recipe_id, name)
 );

@@ -12,6 +12,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/chvck/meal-planner/model/planner"
+
+	"github.com/shopspring/decimal"
+
 	"github.com/chvck/meal-planner/db"
 	"github.com/chvck/meal-planner/model/ingredient"
 	"github.com/chvck/meal-planner/model/menu"
@@ -37,6 +41,161 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 	os.Exit(code)
+}
+
+// PLANNER TESTS
+
+func TestPlannerAll(t *testing.T) {
+	beforeEach(t)
+	allPlanners := *testhelper.HelperCreatePlanners(t, sqlDb, "./testdata/planners.json")
+
+	planners, err := planner.All(&adapter, 1517443200, 1519862400, 1)
+	expectedPlanners := []planner.Planner{allPlanners[1], allPlanners[2], allPlanners[3]}
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(*planners))
+	assert.Equal(t, expectedPlanners, *planners)
+}
+
+func TestPlannerAllOnlyWithinDateRange(t *testing.T) {
+	beforeEach(t)
+	allPlanners := *testhelper.HelperCreatePlanners(t, sqlDb, "./testdata/planners.json")
+
+	planners, err := planner.All(&adapter, 1517443200, 1518998400, 1)
+	expectedPlanners := []planner.Planner{allPlanners[1], allPlanners[2]}
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(*planners))
+	assert.Equal(t, expectedPlanners, *planners)
+}
+
+func TestPlannerAddMenuNewPlanner(t *testing.T) {
+	beforeEach(t)
+
+	row := adapter.QueryOne(`INSERT INTO "menu" ("name", "description", "user_id") VALUES ($1, $2, $3) RETURNING id;`,
+		"test", "test", 1)
+
+	var menuID int
+	if err := row.Scan(&menuID); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedWhen := 1517443200
+	expectedFor := "breakfast"
+	if err := planner.AddMenu(&adapter, expectedWhen, expectedFor, menuID, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := sqlDb.Query(`SELECT id, "when", "for", "user_id" from planner;`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var planners []planner.Planner
+	defer rows.Close()
+	for rows.Next() {
+		p := planner.Planner{}
+		rows.Scan(&p.ID, &p.When, &p.For, &p.UserID)
+
+		planners = append(planners, p)
+	}
+
+	assert.Equal(t, 1, len(planners))
+	p := planners[0]
+
+	assert.Equal(t, expectedWhen, p.When)
+	assert.Equal(t, expectedFor, p.For)
+	assert.Equal(t, 1, p.UserID)
+
+	rows, err = sqlDb.Query(`SELECT "planner_id", "menu_id" from planner_to_menu;`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var actualMenuId int
+		var actualPlannerId int
+		rows.Scan(&actualPlannerId, &actualMenuId)
+
+		assert.Equal(t, menuID, actualMenuId)
+		assert.Equal(t, p.ID, actualPlannerId)
+	}
+}
+
+func TestPlannerAddMenuExistingPlanner(t *testing.T) {
+	beforeEach(t)
+
+	row := adapter.QueryOne(`INSERT INTO "menu" ("name", "description", "user_id") VALUES ($1, $2, $3) RETURNING id;`,
+		"test", "test", 1)
+
+	var menuID int
+	if err := row.Scan(&menuID); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedWhen := 1517443200
+	expectedFor := "breakfast"
+	if _, err := sqlDb.Exec(`INSERT INTO "planner" ("when", "for", "user_id") VALUES ($1, $2, $3);`,
+		expectedWhen, expectedFor, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := planner.AddMenu(&adapter, expectedWhen, expectedFor, menuID, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	rows, err := sqlDb.Query(`SELECT id, "when", "for", "user_id" from planner;`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var planners []planner.Planner
+	defer rows.Close()
+	for rows.Next() {
+		p := planner.Planner{}
+		rows.Scan(&p.ID, &p.When, &p.For, &p.UserID)
+
+		planners = append(planners, p)
+	}
+
+	assert.Equal(t, 1, len(planners))
+	p := planners[0]
+
+	assert.Equal(t, expectedWhen, p.When)
+	assert.Equal(t, expectedFor, p.For)
+	assert.Equal(t, 1, p.UserID)
+
+	rows, err = sqlDb.Query(`SELECT "planner_id", "menu_id" from planner_to_menu;`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var actualMenuId int
+		var actualPlannerId int
+		rows.Scan(&actualPlannerId, &actualMenuId)
+
+		assert.Equal(t, menuID, actualMenuId)
+		assert.Equal(t, p.ID, actualPlannerId)
+	}
+}
+
+func TestPlannerAddMenuInvalidMealtime(t *testing.T) {
+	beforeEach(t)
+	row := adapter.QueryOne(`INSERT INTO "menu" ("name", "description", "user_id") VALUES ($1, $2, $3) RETURNING id;`,
+		"test", "test", 1)
+
+	var menuID int
+	if err := row.Scan(&menuID); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedWhen := 1517443200
+	expectedFor := "supper"
+
+	err := planner.AddMenu(&adapter, expectedWhen, expectedFor, menuID, 1)
+
+	assert.NotNil(t, err)
 }
 
 // MENU TESTS
@@ -394,7 +553,7 @@ func TestRecipeUpdate(t *testing.T) {
 
 	newIng1 := ingredient.Ingredient{
 		Name:     "Another ingredient",
-		Quantity: 4,
+		Quantity: decimal.NewFromFloat(4),
 	}
 	newIngredients := []ingredient.Ingredient{newIng1}
 
@@ -444,7 +603,7 @@ func TestRecipeUpdate(t *testing.T) {
 	assert.Equal(t, 1, len(actualIngredients))
 	assert.Equal(t, "Another ingredient", actualIngredients[0].Name)
 	assert.Equal(t, null.String{NullString: sql.NullString{}}, actualIngredients[0].Measure)
-	assert.Equal(t, 4, actualIngredients[0].Quantity)
+	assert.Equal(t, decimal.NewFromFloat(4), actualIngredients[0].Quantity)
 }
 
 func TestRecipeUpdateWhenEmptyNameThenError(t *testing.T) {
@@ -522,7 +681,7 @@ func TestIngredientString(t *testing.T) {
 		ID:       1,
 		Measure:  null.String{NullString: sql.NullString{String: "tbsp"}},
 		Name:     "Paprika",
-		Quantity: 2,
+		Quantity: decimal.NewFromFloat(2),
 		RecipeID: 2,
 	}
 
