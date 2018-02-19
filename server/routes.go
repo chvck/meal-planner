@@ -23,6 +23,7 @@ func routes() *mux.Router {
 	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeIndex)).Methods("GET")
 	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeByID)).Methods("GET")
 	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeCreate)).Methods("POST")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeUpdate)).Methods("POST")
 
 	router.HandleFunc("/menu/{id}", validateMiddleware(controller.MenuByID)).Methods("GET")
 

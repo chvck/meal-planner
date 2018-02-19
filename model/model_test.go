@@ -563,7 +563,7 @@ func TestRecipeUpdate(t *testing.T) {
 	r.Instructions = "Another set of instructions"
 	r.Ingredients = newIngredients
 
-	if err := recipe.Update(&adapter, r, r.UserID); err != nil {
+	if err := recipe.Update(&adapter, r, r.ID, r.UserID); err != nil {
 		t.Fatal(err)
 	}
 
@@ -637,7 +637,7 @@ func TestRecipeUpdateWhenEmptyNameThenError(t *testing.T) {
 
 	r.Name = ""
 
-	err = recipe.Update(&adapter, r, 1)
+	err = recipe.Update(&adapter, r, r.ID, 1)
 
 	assert.NotNil(t, err)
 }
@@ -671,7 +671,7 @@ func TestRecipeUpdateWhenEmptyInstructionsThenError(t *testing.T) {
 
 	r.Instructions = ""
 
-	err = recipe.Update(&adapter, r, 1)
+	err = recipe.Update(&adapter, r, r.ID, 1)
 
 	assert.NotNil(t, err)
 }

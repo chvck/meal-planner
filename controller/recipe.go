@@ -81,3 +81,36 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// RecipeUpdate is the HTTP handler for updating a recipe
+func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
+	db := store.Database()
+	u := context.Get(r, "user").(user.User)
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	var re recipe.Recipe
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		return
+	}
+	if err := json.Unmarshal(body, &re); err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		return
+	}
+
+	err = recipe.Update(db, re, id, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
+		return
+	}
+}

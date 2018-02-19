@@ -312,7 +312,7 @@ func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) (*int, erro
 }
 
 // Update updates the specific Recipe
-func Update(dataStore model.IDataStoreAdapter, r Recipe, userID int) error {
+func Update(dataStore model.IDataStoreAdapter, r Recipe, id int, userID int) error {
 	if err := validate(r); err != nil {
 		return err
 	}
@@ -324,18 +324,18 @@ func Update(dataStore model.IDataStoreAdapter, r Recipe, userID int) error {
 
 	if _, err = tx.Exec(
 		"UPDATE recipe SET name = ?, instructions = ?, yield = ?, prep_time = ?, cook_time = ?, description = ? WHERE id = ? and user_id = ?;",
-		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, r.ID, userID); err != nil {
+		r.Name, r.Instructions, r.Yield, r.PrepTime, r.CookTime, r.Description, id, userID); err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	// This isn't exactly efficient but ok for now
-	if err := ingredient.DeleteAllByRecipe(tx, r.ID); err != nil {
+	if err := ingredient.DeleteAllByRecipe(tx, id); err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	if err := ingredient.CreateMany(tx, r.Ingredients, r.ID); err != nil {
+	if err := ingredient.CreateMany(tx, r.Ingredients, id); err != nil {
 		tx.Rollback()
 		return err
 	}
