@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/db"
 	"github.com/chvck/meal-planner/model/menu"
 	"github.com/chvck/meal-planner/model/recipe"
 )
@@ -20,7 +20,7 @@ type Planner struct {
 }
 
 // All retrieves Planners between two dates
-func All(dataStore model.IDataStoreAdapter, start int, end int, userID int) (*[]Planner, error) {
+func All(dataStore db.DataStoreAdapter, start int, end int, userID int) (*[]Planner, error) {
 	rows, err := dataStore.Query(
 		`SELECT p.id, p.user_id, p.when, p.for
 		FROM planner p
@@ -81,7 +81,7 @@ func All(dataStore model.IDataStoreAdapter, start int, end int, userID int) (*[]
 }
 
 // AddMenu adds a menu to the planner, if the planner when/mealtime pair doesn't exist then creates it
-func AddMenu(dataStore model.IDataStoreAdapter, when int, mealtime string, menuID int, userID int) error {
+func AddMenu(dataStore db.DataStoreAdapter, when int, mealtime string, menuID int, userID int) error {
 	if !validateMealtime(mealtime) {
 		return errors.New("mealtime must be one of breakfast, lunch, dinner or snack")
 	}
@@ -102,7 +102,7 @@ func AddMenu(dataStore model.IDataStoreAdapter, when int, mealtime string, menuI
 }
 
 // AddRecipe adds a recipe to the planner, if the planner when/mealtime pair doesn't exist then creates it
-func AddRecipe(dataStore model.IDataStoreAdapter, when int, mealtime string, recipeID int, userID int) error {
+func AddRecipe(dataStore db.DataStoreAdapter, when int, mealtime string, recipeID int, userID int) error {
 	if !validateMealtime(mealtime) {
 		return errors.New("mealtime must be one of breakfast, lunch, dinner or snack")
 	}
@@ -123,7 +123,7 @@ func AddRecipe(dataStore model.IDataStoreAdapter, when int, mealtime string, rec
 }
 
 // RemoveMenu removes a menu from the planner
-func RemoveMenu(dataStore model.IDataStoreAdapter, when int, mealtime string, menuID int, userID int) error {
+func RemoveMenu(dataStore db.DataStoreAdapter, when int, mealtime string, menuID int, userID int) error {
 	query := `DELETE pm FROM "planner_to_menu" pm JOIN "planner" p 
 	ON p.id = pm.planner_id WHERE p.when = ? AND p.for = ? AND p.user_id = ? AND pm.menu_id = ?;`
 
@@ -135,7 +135,7 @@ func RemoveMenu(dataStore model.IDataStoreAdapter, when int, mealtime string, me
 }
 
 // RemoveRecipe removes a recipe from the planner
-func RemoveRecipe(dataStore model.IDataStoreAdapter, when int, mealtime string, recipeID int, userID int) error {
+func RemoveRecipe(dataStore db.DataStoreAdapter, when int, mealtime string, recipeID int, userID int) error {
 	query := `DELETE pr FROM "planner_to_recipe" pr JOIN "planner" p 
 	ON p.id = pm.planner_id WHERE p.when = ? AND p.for = ? AND p.user_id = ? AND pr.recipe_id = ?;`
 
@@ -146,7 +146,7 @@ func RemoveRecipe(dataStore model.IDataStoreAdapter, when int, mealtime string, 
 	return nil
 }
 
-func getAndCreatePlanner(dataStore model.IDataStoreAdapter, when int, mealtime string, userID int) (*int, error) {
+func getAndCreatePlanner(dataStore db.DataStoreAdapter, when int, mealtime string, userID int) (*int, error) {
 	p, err := plannerExists(dataStore, when, mealtime)
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func getAndCreatePlanner(dataStore model.IDataStoreAdapter, when int, mealtime s
 
 }
 
-func plannerExists(dataStore model.IDataStoreAdapter, when int, mealtime string) (*Planner, error) {
+func plannerExists(dataStore db.DataStoreAdapter, when int, mealtime string) (*Planner, error) {
 	query := `SELECT p.id, p.when, p.for, p.user_id FROM planner p WHERE "when" = ? AND "for" = ?;`
 
 	row := dataStore.QueryOne(query, when, mealtime)

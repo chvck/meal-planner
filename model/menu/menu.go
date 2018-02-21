@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/db"
 	"github.com/chvck/meal-planner/model/recipe"
 	null "gopkg.in/guregu/null.v3"
 )
@@ -25,7 +25,7 @@ type menuWithPlannerID struct {
 }
 
 // One retrieves a single Menu by id
-func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
+func One(dataStore db.DataStoreAdapter, id int, userID int) (*Menu, error) {
 	row := dataStore.QueryOne(
 		`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
@@ -52,7 +52,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Menu, error) {
 }
 
 // AllWithLimit retrieves x menus starting from an offset
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Menu, error) {
+func AllWithLimit(dataStore db.DataStoreAdapter, limit int, offset int, userID int) (*[]Menu, error) {
 	var menuIDs []interface{}
 	var menus []Menu
 	rows, err := dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
@@ -100,7 +100,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 }
 
 // ForPlanners returns the menus for a list of planner IDs. Recipes are keyed by planner ID
-func ForPlanners(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Menu, error) {
+func ForPlanners(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]Menu, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var menuIDs []interface{}
 	var menus []menuWithPlannerID

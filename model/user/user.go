@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/db"
 	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/guregu/null.v3"
 )
@@ -25,7 +25,7 @@ const (
 )
 
 // One retrieves a single User by id
-func One(dataStore model.IDataStoreAdapter, id int) (*User, error) {
+func One(dataStore db.DataStoreAdapter, id int) (*User, error) {
 	row := dataStore.QueryOne(
 		`SELECT id, username, email, created_at, updated_at, last_login
 		FROM user
@@ -42,7 +42,7 @@ func One(dataStore model.IDataStoreAdapter, id int) (*User, error) {
 }
 
 // AllWithLimit retrieves x users starting from an offset
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int) (*[]User, error) {
+func AllWithLimit(dataStore db.DataStoreAdapter, limit int, offset int) (*[]User, error) {
 	var users []User
 	if rows, err := dataStore.Query(
 		`SELECT id, username, email, created_at, updated_at, last_login
@@ -71,7 +71,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int) (*[]
 }
 
 // Create persists the specific User
-func Create(dataStore model.IDataStoreAdapter, u User, password []byte) error {
+func Create(dataStore db.DataStoreAdapter, u User, password []byte) error {
 	if string(password) == "" {
 		return errors.New("password cannot be empty")
 	}
@@ -93,7 +93,7 @@ func Create(dataStore model.IDataStoreAdapter, u User, password []byte) error {
 }
 
 // ValidatePassword verifies a password for a user
-func ValidatePassword(dataStore model.IDataStoreAdapter, username string, pw []byte) *User {
+func ValidatePassword(dataStore db.DataStoreAdapter, username string, pw []byte) *User {
 	row := dataStore.QueryOne(
 		`SELECT id, username, email, password, created_at, updated_at, last_login FROM "user" WHERE username = ?`, username,
 	)

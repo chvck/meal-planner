@@ -34,15 +34,16 @@ type SqlxTransaction struct {
 // Exec executes a statement as a part of this Transaction
 func (tx SqlxTransaction) Exec(baseExec string, bindVars ...interface{}) (int, error) {
 	e := tx.db.Rebind(baseExec)
-	if result, err := tx.tx.Exec(e, bindVars...); err != nil {
+	result, err := tx.tx.Exec(e, bindVars...)
+	if err != nil {
 		return -1, err
-	} else {
-		if rows, err := result.RowsAffected(); err != nil {
-			return -1, err
-		} else {
-			return int(rows), nil
-		}
 	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+	return int(rows), nil
+
 }
 
 // QueryOne performs the specified query and returns a single row
@@ -73,12 +74,14 @@ func (p *SqlxAdapter) InitializeWithDb(db *sqlx.DB) error {
 
 // Initialize sets up the connection to the database
 func (p *SqlxAdapter) Initialize(dbType string, connectionString string) error {
-	if db, err := sqlx.Connect(dbType, connectionString); err != nil {
+	db, err := sqlx.Connect(dbType, connectionString)
+	if err != nil {
 		return err
-	} else {
-		p.db = db
-		return nil
 	}
+	p.db = db
+
+	return nil
+
 }
 
 // Query performs the specified query and returns a set of rows
@@ -86,11 +89,13 @@ func (p SqlxAdapter) Query(baseQuery string, bindVars ...interface{}) (Rows, err
 	if strings.Contains(baseQuery, "?") {
 		baseQuery = p.db.Rebind(baseQuery)
 	}
-	if rows, err := p.db.Query(baseQuery, bindVars...); err != nil {
+	rows, err := p.db.Query(baseQuery, bindVars...)
+	if err != nil {
 		return nil, err
-	} else {
-		return SqlxRows{rows}, nil
 	}
+
+	return SqlxRows{rows}, nil
+
 }
 
 // QueryOne performs the specified query and returns a single row
@@ -102,24 +107,26 @@ func (p SqlxAdapter) QueryOne(baseQuery string, bindVars ...interface{}) Row {
 // Exec executes a statement and returns number of affected rows
 func (p SqlxAdapter) Exec(baseExec string, bindVars ...interface{}) (int, error) {
 	e := p.db.Rebind(baseExec)
-	if result, err := p.db.Exec(e, bindVars...); err != nil {
+	result, err := p.db.Exec(e, bindVars...)
+	if err != nil {
 		return -1, err
-	} else {
-		if rows, err := result.RowsAffected(); err != nil {
-			return -1, err
-		} else {
-			return int(rows), nil
-		}
 	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return -1, err
+	}
+
+	return int(rows), nil
 }
 
 // NewTransaction returns a new database Transaction
 func (p SqlxAdapter) NewTransaction() (Transaction, error) {
-	if tx, err := p.db.Begin(); err != nil {
+	tx, err := p.db.Begin()
+	if err != nil {
 		return nil, err
-	} else {
-		return &SqlxTransaction{db: p.db, tx: tx}, err
 	}
+
+	return &SqlxTransaction{db: p.db, tx: tx}, err
 }
 
 // DBType returns the type of database in use

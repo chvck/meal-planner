@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/db"
 	"github.com/chvck/meal-planner/model/ingredient"
 	"gopkg.in/guregu/null.v3"
 )
@@ -35,7 +35,7 @@ type recipeWithPlannerID struct {
 }
 
 // FindByIngredientNames executes a search for recipes by ingredient name
-func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface{}) (*[]Recipe, error) {
+func FindByIngredientNames(dataStore db.DataStoreAdapter, names ...interface{}) (*[]Recipe, error) {
 	if len(names) == 0 {
 		var recipes []Recipe
 		return &recipes, nil
@@ -94,7 +94,7 @@ func FindByIngredientNames(dataStore model.IDataStoreAdapter, names ...interface
 }
 
 // One retrieves a single Recipe by id
-func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error) {
+func One(dataStore db.DataStoreAdapter, id int, userID int) (*Recipe, error) {
 	row := dataStore.QueryOne(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
@@ -121,7 +121,7 @@ func One(dataStore model.IDataStoreAdapter, id int, userID int) (*Recipe, error)
 }
 
 // AllWithLimit retrieves x recipes starting from an offset
-func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
+func AllWithLimit(dataStore db.DataStoreAdapter, limit int, offset int, userID int) (*[]Recipe, error) {
 	var recipeIDs []interface{}
 	var recipes []Recipe
 	rows, err := dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
@@ -169,7 +169,7 @@ func AllWithLimit(dataStore model.IDataStoreAdapter, limit int, offset int, user
 }
 
 // ForMenus returns the recipes for a list of menu IDs. Recipes are keyed by menu ID
-func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
+func ForMenus(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var recipeIDs []interface{}
 	var recipes []recipeWithMenuID
@@ -223,7 +223,7 @@ func ForMenus(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]
 }
 
 // ForPlanners returns the recipes for a list of planner IDs. Recipes are keyed by planner ID
-func ForPlanners(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
+func ForPlanners(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var recipeIDs []interface{}
 	var recipes []recipeWithPlannerID
@@ -277,7 +277,7 @@ func ForPlanners(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int
 }
 
 // Create creates the specific Recipe
-func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) (*int, error) {
+func Create(dataStore db.DataStoreAdapter, r Recipe, userID int) (*int, error) {
 	if err := validate(r); err != nil {
 		return nil, err
 	}
@@ -312,7 +312,7 @@ func Create(dataStore model.IDataStoreAdapter, r Recipe, userID int) (*int, erro
 }
 
 // Update updates the specific Recipe
-func Update(dataStore model.IDataStoreAdapter, r Recipe, id int, userID int) error {
+func Update(dataStore db.DataStoreAdapter, r Recipe, id int, userID int) error {
 	if err := validate(r); err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func Update(dataStore model.IDataStoreAdapter, r Recipe, id int, userID int) err
 }
 
 // Delete deletes the specific Recipe
-func Delete(dataStore model.IDataStoreAdapter, id int, userID int) error {
+func Delete(dataStore db.DataStoreAdapter, id int, userID int) error {
 	tx, err := dataStore.NewTransaction()
 	if err != nil {
 		return err

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model"
 	"github.com/shopspring/decimal"
 	"gopkg.in/guregu/null.v3"
 )
@@ -47,7 +46,7 @@ func DeleteAllByRecipe(tx db.Transaction, recipeID int) error {
 }
 
 // ForRecipes returns the ingredients for a list of recipe ids. Ingredients are keyed by ID
-func ForRecipes(dataStore model.IDataStoreAdapter, ids ...interface{}) (map[int][]Ingredient, error) {
+func ForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]Ingredient, error) {
 	m := make(map[int][]Ingredient)
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 
