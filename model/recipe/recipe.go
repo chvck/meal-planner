@@ -348,6 +348,29 @@ func Update(dataStore model.IDataStoreAdapter, r Recipe, id int, userID int) err
 	return nil
 }
 
+// Delete deletes the specific Recipe
+func Delete(dataStore model.IDataStoreAdapter, id int, userID int) error {
+	tx, err := dataStore.NewTransaction()
+	if err != nil {
+		return err
+	}
+
+	rowsAccepted, err := tx.Exec(
+		`DELETE FROM "recipe" r
+		JOIN ingredient i ON i.recipe_id = r.id
+		LEFT JOIN planner_to_recipe pr ON pr.recipe_id = i.id
+		WHERE r.id = ? and r.user_id = ?`, id, userID)
+	if err != nil {
+		return err
+	}
+
+	if rowsAccepted == 0 {
+		return errors.New("No recipe to delete")
+	}
+
+	return nil
+}
+
 func validate(r Recipe) error {
 	if r.Name == "" {
 		return errors.New("name cannot be empty")

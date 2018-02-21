@@ -114,3 +114,24 @@ func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// RecipeDelete is the HTTP handler for deleting a recipe
+func RecipeDelete(w http.ResponseWriter, r *http.Request) {
+	db := store.Database()
+	u := context.Get(r, "user").(user.User)
+	vars := mux.Vars(r)
+
+	id, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	err = recipe.Delete(db, id, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Could not delete recipe", http.StatusInternalServerError)
+		return
+	}
+}
