@@ -67,14 +67,14 @@ func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]user.User, error) {
 }
 
 // Create persists the specific User
-func (sqlu SQLUser) Create(u user.User, password []byte) error {
+func (sqlu SQLUser) Create(u user.User, password []byte) (*int, error) {
 	if string(password) == "" {
-		return errors.New("password cannot be empty")
+		return nil, errors.New("password cannot be empty")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	now := time.Now().Unix()
@@ -85,7 +85,8 @@ func (sqlu SQLUser) Create(u user.User, password []byte) error {
 	)
 
 	var userID int
-	return row.Scan(&userID)
+	row.Scan(&userID)
+	return &userID, nil
 }
 
 // ValidatePassword verifies a password for a user
