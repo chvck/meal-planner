@@ -1,4 +1,4 @@
-package user
+package model
 
 import (
 	"gopkg.in/guregu/null.v3"

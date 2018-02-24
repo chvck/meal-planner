@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/chvck/meal-planner/datamodel"
-	"github.com/chvck/meal-planner/model/planner"
 )
 
 type PlannerService struct {
@@ -12,12 +11,12 @@ type PlannerService struct {
 }
 
 // All retrieves all planners
-func (ps PlannerService) All(limit int, offset int, userID int) ([]planner.Planner, error) {
+func (ps PlannerService) All(limit int, offset int, userID int) ([]model.Planner, error) {
 	return ps.pdm.All(limit, offset, userID)
 }
 
 // AllWithRelations retrieves all planners, with menus and recipes
-func (ps PlannerService) AllWithRelations(limit int, offset int, userID int) ([]planner.Planner, error) {
+func (ps PlannerService) AllWithRelations(limit int, offset int, userID int) ([]model.Planner, error) {
 	planners, err := ps.pdm.All(limit, offset, userID)
 	if err != nil {
 		return nil, err

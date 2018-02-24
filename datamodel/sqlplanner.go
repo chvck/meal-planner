@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model/planner"
 )
 
 // SQLPlanner is a Planner datamodel backing onto a sql database
@@ -13,7 +12,7 @@ type SQLPlanner struct {
 }
 
 // All retrieves Planners between two dates
-func (sqlp SQLPlanner) All(start int, end int, userID int) ([]planner.Planner, error) {
+func (sqlp SQLPlanner) All(start int, end int, userID int) ([]model.Planner, error) {
 	rows, err := sqlp.dataStore.Query(
 		`SELECT p.id, p.user_id, p.when, p.for
 		FROM planner p
@@ -28,9 +27,9 @@ func (sqlp SQLPlanner) All(start int, end int, userID int) ([]planner.Planner, e
 	}
 	defer rows.Close()
 
-	var planners []planner.Planner
+	var planners []model.Planner
 	for rows.Next() {
-		p := planner.Planner{}
+		p := model.Planner{}
 		if err := rows.Scan(&p.ID, &p.UserID, &p.When, &p.For); err != nil {
 			return nil, err
 		}
@@ -46,12 +45,12 @@ func (sqlp SQLPlanner) All(start int, end int, userID int) ([]planner.Planner, e
 }
 
 // One retrieves a single Planner
-func (sqlp SQLPlanner) One(when int, mealtime string, userID int) (*planner.Planner, error) {
+func (sqlp SQLPlanner) One(when int, mealtime string, userID int) (*model.Planner, error) {
 	query := `SELECT p.id, p.when, p.for, p.user_id FROM planner p WHERE "when" = ? AND "for" = ?;`
 
 	row := sqlp.dataStore.QueryOne(query, when, mealtime)
 
-	var p planner.Planner
+	var p model.Planner
 	if err := row.Scan(&p.ID, &p.When, &p.For, &p.UserID); err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {

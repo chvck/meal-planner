@@ -12,7 +12,7 @@ import (
 )
 
 type userWithPassword struct {
-	user.User
+	model.User
 	Password string `json:"password"`
 }
 
@@ -76,9 +76,9 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createToken(user *user.User) (*jwtToken, error) {
+func createToken(user *model.User) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username":  user.Username,
+		"username":  model.Username,
 		"email":     user.Email,
 		"id":        user.ID,
 		"lastLogin": user.LastLogin,

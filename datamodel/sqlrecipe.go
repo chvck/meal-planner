@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/shopspring/decimal"
 	null "gopkg.in/guregu/null.v3"
 )
@@ -18,12 +17,12 @@ type SQLRecipe struct {
 }
 
 type recipeWithMenuID struct {
-	recipe.Recipe
+	model.Recipe
 	MenuID int `db:"menu_id" json:"menu_id"`
 }
 
 type recipeWithPlannerID struct {
-	recipe.Recipe
+	model.Recipe
 	PlannerID int `db:"planner_id" json:"planner_id"`
 }
 
@@ -33,13 +32,13 @@ func NewSQLRecipe() *SQLRecipe {
 }
 
 // FindByIngredientNames executes a search for recipes by ingredient name
-func (sqlr SQLRecipe) FindByIngredientNames(names ...interface{}) ([]recipe.Recipe, error) {
+func (sqlr SQLRecipe) FindByIngredientNames(names ...interface{}) ([]model.Recipe, error) {
 	if len(names) == 0 {
-		var recipes []recipe.Recipe
+		var recipes []model.Recipe
 		return recipes, nil
 	}
 
-	m := make(map[int]*recipe.Recipe)
+	m := make(map[int]*model.Recipe)
 	var ids []interface{}
 	where := "i.name = ?"
 	for i := 0; i < len(names[1:]); i++ {
@@ -59,7 +58,7 @@ func (sqlr SQLRecipe) FindByIngredientNames(names ...interface{}) ([]recipe.Reci
 	}
 	defer rows.Close()
 	for rows.Next() {
-		r := recipe.Recipe{}
+		r := model.Recipe{}
 		rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID)
 
 		m[r.ID] = &r
@@ -71,11 +70,11 @@ func (sqlr SQLRecipe) FindByIngredientNames(names ...interface{}) ([]recipe.Reci
 	}
 
 	if len(m) == 0 {
-		var recipes []recipe.Recipe
+		var recipes []model.Recipe
 		return recipes, nil
 	}
 
-	recipes := make([]recipe.Recipe, 0, len(m))
+	recipes := make([]model.Recipe, 0, len(m))
 	ingredients, err := ingredientsForRecipes(sqlr.dataStore, ids...)
 
 	if err != nil {
@@ -91,8 +90,8 @@ func (sqlr SQLRecipe) FindByIngredientNames(names ...interface{}) ([]recipe.Reci
 	return recipes, nil
 }
 
-// One retrieves a single recipe.Recipe by id
-func (sqlr SQLRecipe) One(id int, userID int) (*recipe.Recipe, error) {
+// One retrieves a single model.Recipe by id
+func (sqlr SQLRecipe) One(id int, userID int) (*model.Recipe, error) {
 	row := sqlr.dataStore.QueryOne(
 		`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
@@ -101,7 +100,7 @@ func (sqlr SQLRecipe) One(id int, userID int) (*recipe.Recipe, error) {
 		userID,
 	)
 
-	r := recipe.Recipe{}
+	r := model.Recipe{}
 	if err := row.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield,
 		&r.PrepTime, &r.CookTime, &r.UserID); err == sql.ErrNoRows {
 		return nil, nil
@@ -121,8 +120,8 @@ func (sqlr SQLRecipe) One(id int, userID int) (*recipe.Recipe, error) {
 }
 
 // AllWithLimit retrieves x recipes starting from an offset
-func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]recipe.Recipe, error) {
-	var recipes []recipe.Recipe
+func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]model.Recipe, error) {
+	var recipes []model.Recipe
 	var recipeIDs []interface{}
 	rows, err := sqlr.dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
@@ -135,7 +134,7 @@ func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]recipe.
 	}
 	defer rows.Close()
 	for rows.Next() {
-		r := recipe.Recipe{}
+		r := model.Recipe{}
 		if err := rows.Scan(&r.ID, &r.Name, &r.Instructions, &r.Description, &r.Yield, &r.PrepTime, &r.CookTime, &r.UserID); err != nil {
 			return nil, err
 		}
@@ -164,7 +163,7 @@ func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]recipe.
 }
 
 // ForMenus returns the recipes for a list of menu IDs. Recipes are keyed by menu ID
-func (sqlr SQLRecipe) ForMenus(ids ...interface{}) (map[int][]recipe.Recipe, error) {
+func (sqlr SQLRecipe) ForMenus(ids ...interface{}) (map[int][]model.Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var recipeIDs []interface{}
 	var recipes []recipeWithMenuID
@@ -195,20 +194,20 @@ func (sqlr SQLRecipe) ForMenus(ids ...interface{}) (map[int][]recipe.Recipe, err
 	}
 
 	if len(recipes) == 0 {
-		return make(map[int][]recipe.Recipe), nil
+		return make(map[int][]model.Recipe), nil
 	}
 
 	recipeIDToIngredients, err := ingredientsForRecipes(sqlr.dataStore, recipeIDs...)
 	if err != nil {
 		return nil, err
 	}
-	menuIDToRecipe := make(map[int][]recipe.Recipe)
+	menuIDToRecipe := make(map[int][]model.Recipe)
 	for _, rec := range recipes {
 		rec.Ingredients = recipeIDToIngredients[rec.ID]
 
 		_, ok := menuIDToRecipe[rec.MenuID]
 		if !ok {
-			menuIDToRecipe[rec.MenuID] = make([]recipe.Recipe, 0)
+			menuIDToRecipe[rec.MenuID] = make([]model.Recipe, 0)
 		}
 
 		menuIDToRecipe[rec.MenuID] = append(menuIDToRecipe[rec.MenuID], rec.Recipe)
@@ -218,7 +217,7 @@ func (sqlr SQLRecipe) ForMenus(ids ...interface{}) (map[int][]recipe.Recipe, err
 }
 
 // ForPlanners returns the recipes for a list of planner IDs. Recipes are keyed by planner ID
-func (sqlr SQLRecipe) ForPlanners(ids ...interface{}) (map[int][]recipe.Recipe, error) {
+func (sqlr SQLRecipe) ForPlanners(ids ...interface{}) (map[int][]model.Recipe, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var recipeIDs []interface{}
 	var recipes []recipeWithPlannerID
@@ -249,20 +248,20 @@ func (sqlr SQLRecipe) ForPlanners(ids ...interface{}) (map[int][]recipe.Recipe, 
 	}
 
 	if len(recipes) == 0 {
-		return make(map[int][]recipe.Recipe), nil
+		return make(map[int][]model.Recipe), nil
 	}
 
 	recipeIDToIngredients, err := ingredientsForRecipes(sqlr.dataStore, recipeIDs...)
 	if err != nil {
 		return nil, err
 	}
-	plannerIDToRecipe := make(map[int][]recipe.Recipe)
+	plannerIDToRecipe := make(map[int][]model.Recipe)
 	for _, rec := range recipes {
 		rec.Ingredients = recipeIDToIngredients[rec.ID]
 
 		_, ok := plannerIDToRecipe[rec.PlannerID]
 		if !ok {
-			plannerIDToRecipe[rec.PlannerID] = make([]recipe.Recipe, 0)
+			plannerIDToRecipe[rec.PlannerID] = make([]model.Recipe, 0)
 		}
 
 		plannerIDToRecipe[rec.PlannerID] = append(plannerIDToRecipe[rec.PlannerID], rec.Recipe)
@@ -272,7 +271,7 @@ func (sqlr SQLRecipe) ForPlanners(ids ...interface{}) (map[int][]recipe.Recipe, 
 }
 
 // Create creates the specific recipe
-func (sqlr SQLRecipe) Create(r recipe.Recipe, userID int) (*int, error) {
+func (sqlr SQLRecipe) Create(r model.Recipe, userID int) (*int, error) {
 	if err := validateRecipe(r); err != nil {
 		return nil, err
 	}
@@ -307,7 +306,7 @@ func (sqlr SQLRecipe) Create(r recipe.Recipe, userID int) (*int, error) {
 }
 
 // Update updates the specific recipe
-func (sqlr SQLRecipe) Update(r recipe.Recipe, id int, userID int) error {
+func (sqlr SQLRecipe) Update(r model.Recipe, id int, userID int) error {
 	if err := validateRecipe(r); err != nil {
 		return err
 	}
@@ -367,7 +366,7 @@ func (sqlr SQLRecipe) Delete(id int, userID int) error {
 	return nil
 }
 
-func createManyIngredients(tx db.Transaction, ingredients []recipe.Ingredient, recipeID int) error {
+func createManyIngredients(tx db.Transaction, ingredients []model.Ingredient, recipeID int) error {
 	query := `INSERT INTO "ingredient" (name, measure, quantity, recipe_id) VALUES (?, ?, ?, ?);`
 	for _, ing := range ingredients {
 		if _, err := tx.Exec(query, ing.Name, ing.Measure, ing.Quantity, recipeID); err != nil {
@@ -387,8 +386,8 @@ func deleteAllIngredientsByRecipe(tx db.Transaction, recipeID int) error {
 	return nil
 }
 
-func ingredientsForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]recipe.Ingredient, error) {
-	m := make(map[int][]recipe.Ingredient)
+func ingredientsForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (map[int][]model.Ingredient, error) {
+	m := make(map[int][]model.Ingredient)
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 
 	query := fmt.Sprintf(
@@ -417,7 +416,7 @@ func ingredientsForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (m
 		}
 
 		arr := m[rID]
-		i := recipe.Ingredient{ID: ingID, RecipeID: rID, Name: ingName, Measure: mName, Quantity: q}
+		i := model.Ingredient{ID: ingID, RecipeID: rID, Name: ingName, Measure: mName, Quantity: q}
 		arr = append(arr, i)
 		m[rID] = arr
 	}
@@ -429,7 +428,7 @@ func ingredientsForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (m
 	return m, nil
 }
 
-func validateRecipe(r recipe.Recipe) error {
+func validateRecipe(r model.Recipe) error {
 	if r.Name == "" {
 		return errors.New("name cannot be empty")
 	}

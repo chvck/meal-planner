@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/controller"
-	"github.com/chvck/meal-planner/model/user"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -51,7 +50,7 @@ func validateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			}
 
 			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				u := user.User{ID: int(claims["id"].(float64)), Username: claims["username"].(string)}
+				u := model.User{ID: int(claims["id"].(float64)), Username: claims["username"].(string)}
 				context.Set(req, "user", u)
 				next(w, req)
 			} else {

@@ -1,4 +1,4 @@
-package recipe
+package model
 
 import (
 	"fmt"

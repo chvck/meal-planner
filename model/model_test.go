@@ -52,7 +52,7 @@ func TestPlannerAll(t *testing.T) {
 	allPlanners := *testhelper.HelperCreatePlanners(t, sqlDb, "./testdata/planners.json")
 
 	planners, err := planner.All(&adapter, 1517443200, 1519862400, 1)
-	expectedPlanners := []planner.Planner{allPlanners[1], allPlanners[2], allPlanners[3]}
+	expectedPlanners := []model.Planner{allPlanners[1], allPlanners[2], allPlanners[3]}
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(*planners))
 	assert.Equal(t, expectedPlanners, *planners)
@@ -63,7 +63,7 @@ func TestPlannerAllOnlyWithinDateRange(t *testing.T) {
 	allPlanners := *testhelper.HelperCreatePlanners(t, sqlDb, "./testdata/planners.json")
 
 	planners, err := planner.All(&adapter, 1517443200, 1518998400, 1)
-	expectedPlanners := []planner.Planner{allPlanners[1], allPlanners[2]}
+	expectedPlanners := []model.Planner{allPlanners[1], allPlanners[2]}
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*planners))
 	assert.Equal(t, expectedPlanners, *planners)
@@ -91,10 +91,10 @@ func TestPlannerAddMenuNewPlanner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var planners []planner.Planner
+	var planners []model.Planner
 	defer rows.Close()
 	for rows.Next() {
-		p := planner.Planner{}
+		p := model.Planner{}
 		rows.Scan(&p.ID, &p.When, &p.For, &p.UserID)
 
 		planners = append(planners, p)
@@ -150,10 +150,10 @@ func TestPlannerAddMenuExistingPlanner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var planners []planner.Planner
+	var planners []model.Planner
 	defer rows.Close()
 	for rows.Next() {
-		p := planner.Planner{}
+		p := model.Planner{}
 		rows.Scan(&p.ID, &p.When, &p.For, &p.UserID)
 
 		planners = append(planners, p)
@@ -241,7 +241,7 @@ func TestMenuAllWithLimit(t *testing.T) {
 	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
 
 	menus, err := menu.AllWithLimit(&adapter, 10, 0, 1)
-	expectedMenus := []menu.Menu{allMenus[1], allMenus[2]}
+	expectedMenus := []model.Menu{allMenus[1], allMenus[2]}
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(*menus))
 	assert.Equal(t, expectedMenus, *menus)
@@ -264,7 +264,7 @@ func TestMenuAllWithLimitWhenLimitThenLimitedResults(t *testing.T) {
 	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
 
 	menus, err := menu.AllWithLimit(&adapter, 1, 0, 1)
-	expectedMenus := []menu.Menu{allMenus[1]}
+	expectedMenus := []model.Menu{allMenus[1]}
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(*menus))
 	assert.Equal(t, expectedMenus, *menus)
@@ -276,7 +276,7 @@ func TestMenuAllWithLimitWhenOffsetThenOffsetResults(t *testing.T) {
 	allMenus := *testhelper.HelperCreateMenus(t, sqlDb, "./testdata/menus.json")
 
 	menus, err := menu.AllWithLimit(&adapter, 10, 1, 1)
-	expectedMenus := []menu.Menu{allMenus[2]}
+	expectedMenus := []model.Menu{allMenus[2]}
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(*menus))
 	assert.Equal(t, expectedMenus, *menus)
@@ -437,7 +437,7 @@ func TestRecipeCreate(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -448,7 +448,7 @@ func TestRecipeCreate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actualRecipe := recipe.Recipe{}
+	actualRecipe := model.Recipe{}
 	row := sqlDb.QueryRow(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r where r.id = $1;`, *id)
 
@@ -496,7 +496,7 @@ func TestRecipeCreateWhenEmptyNameThenError(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -513,7 +513,7 @@ func TestRecipeCreateWhenEmptyInstructionsThenError(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -530,7 +530,7 @@ func TestRecipeUpdate(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -567,7 +567,7 @@ func TestRecipeUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actualRecipe := recipe.Recipe{}
+	actualRecipe := model.Recipe{}
 	row := sqlDb.QueryRow(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r where r.id = $1;`, r.ID)
 
@@ -612,7 +612,7 @@ func TestRecipeUpdateWhenEmptyNameThenError(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)
@@ -646,7 +646,7 @@ func TestRecipeUpdateWhenEmptyInstructionsThenError(t *testing.T) {
 	beforeEach(t)
 
 	f := testhelper.HelperLoadFixture(t, "./testdata/create_recipe.json")
-	var r recipe.Recipe
+	var r model.Recipe
 	err := json.Unmarshal(f, &r)
 	if err != nil {
 		t.Fatal(err)

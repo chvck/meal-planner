@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/chvck/meal-planner/model/menu"
-	"github.com/chvck/meal-planner/model/user"
 	"github.com/chvck/meal-planner/store"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -16,7 +15,7 @@ import (
 func MenuByID(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	vars := mux.Vars(r)
-	u, ok := context.Get(r, "user").(user.User)
+	u, ok := context.Get(r, "user").(model.User)
 	if !ok {
 		log.Println("Cannot extract user from request")
 		http.Error(w, "Invalid ID", http.StatusBadRequest)

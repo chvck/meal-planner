@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model/user"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -20,7 +19,7 @@ const (
 )
 
 // One retrieves a single User by id
-func (sqlu SQLUser) One(id int) (*user.User, error) {
+func (sqlu SQLUser) One(id int) (*model.User, error) {
 	row := sqlu.dataStore.QueryOne(
 		`SELECT id, username, email, created_at, updated_at, last_login
 		FROM user
@@ -28,7 +27,7 @@ func (sqlu SQLUser) One(id int) (*user.User, error) {
 		id,
 	)
 
-	u := user.User{}
+	u := model.User{}
 	if err := row.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
 		return nil, err
 	}
@@ -37,8 +36,8 @@ func (sqlu SQLUser) One(id int) (*user.User, error) {
 }
 
 // AllWithLimit retrieves x users starting from an offset
-func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]user.User, error) {
-	var users []user.User
+func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]model.User, error) {
+	var users []model.User
 	rows, err := sqlu.dataStore.Query(
 		`SELECT id, username, email, created_at, updated_at, last_login
 		FROM user
@@ -53,7 +52,7 @@ func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]user.User, error) {
 
 	defer rows.Close()
 	for rows.Next() {
-		u := user.User{}
+		u := model.User{}
 		rows.Scan(&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin)
 
 		users = append(users, u)
@@ -67,7 +66,7 @@ func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]user.User, error) {
 }
 
 // Create persists the specific User
-func (sqlu SQLUser) Create(u user.User, password []byte) (*int, error) {
+func (sqlu SQLUser) Create(u model.User, password []byte) (*int, error) {
 	if string(password) == "" {
 		return nil, errors.New("password cannot be empty")
 	}
@@ -90,13 +89,13 @@ func (sqlu SQLUser) Create(u user.User, password []byte) (*int, error) {
 }
 
 // ValidatePassword verifies a password for a user
-func (sqlu SQLUser) ValidatePassword(username string, pw []byte) *user.User {
+func (sqlu SQLUser) ValidatePassword(username string, pw []byte) *model.User {
 	row := sqlu.dataStore.QueryOne(
 		`SELECT id, username, email, password, created_at, updated_at, last_login FROM "user" WHERE username = ?`, username,
 	)
 
 	var actualPw string
-	var u user.User
+	var u model.User
 	if err := row.Scan(&u.ID, &u.Username, &u.Email, &actualPw, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
 		return nil
 	}

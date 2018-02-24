@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/model/menu"
 )
 
 // SQLMenu is a Menu datamodel backing onto a sql database
@@ -16,12 +15,12 @@ type SQLMenu struct {
 }
 
 type menuWithPlannerID struct {
-	menu.Menu
+	model.Menu
 	PlannerID int
 }
 
 // One retrieves a single Menu by id
-func (sqlm SQLMenu) One(id int, userID int) (*menu.Menu, error) {
+func (sqlm SQLMenu) One(id int, userID int) (*model.Menu, error) {
 	row := sqlm.dataStore.QueryOne(
 		`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
@@ -30,7 +29,7 @@ func (sqlm SQLMenu) One(id int, userID int) (*menu.Menu, error) {
 		userID,
 	)
 
-	m := menu.Menu{}
+	m := model.Menu{}
 	if err := row.Scan(&m.ID, &m.Name, &m.Description, &m.UserID); err == sql.ErrNoRows {
 		return nil, nil
 	} else if err != nil {
@@ -41,8 +40,8 @@ func (sqlm SQLMenu) One(id int, userID int) (*menu.Menu, error) {
 }
 
 // AllWithLimit retrieves x menus starting from an offset
-func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]menu.Menu, error) {
-	var menus []menu.Menu
+func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]model.Menu, error) {
+	var menus []model.Menu
 	rows, err := sqlm.dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
 		WHERE m.user_id = ?
@@ -54,7 +53,7 @@ func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]menu.Menu
 	}
 	defer rows.Close()
 	for rows.Next() {
-		m := menu.Menu{}
+		m := model.Menu{}
 		if err := rows.Scan(&m.ID, &m.Name, &m.Description, &m.UserID); err != nil {
 			return nil, err
 		}
@@ -70,7 +69,7 @@ func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]menu.Menu
 }
 
 // ForPlanners returns the menus for a list of planner IDs. Recipes are keyed by planner ID
-func (sqlm SQLMenu) ForPlanners(ids ...interface{}) (map[int][]menu.Menu, error) {
+func (sqlm SQLMenu) ForPlanners(ids ...interface{}) (map[int][]model.Menu, error) {
 	in := strings.Join(strings.Split(strings.Repeat("?", len(ids)), ""), ",")
 	var menus []menuWithPlannerID
 
@@ -98,12 +97,12 @@ func (sqlm SQLMenu) ForPlanners(ids ...interface{}) (map[int][]menu.Menu, error)
 		return nil, err
 	}
 
-	plannerIDToMenu := make(map[int][]menu.Menu)
+	plannerIDToMenu := make(map[int][]model.Menu)
 	for _, m := range menus {
 
 		_, ok := plannerIDToMenu[m.PlannerID]
 		if !ok {
-			plannerIDToMenu[m.PlannerID] = make([]menu.Menu, 0)
+			plannerIDToMenu[m.PlannerID] = make([]model.Menu, 0)
 		}
 
 		plannerIDToMenu[m.PlannerID] = append(plannerIDToMenu[m.PlannerID], m.Menu)
@@ -113,7 +112,7 @@ func (sqlm SQLMenu) ForPlanners(ids ...interface{}) (map[int][]menu.Menu, error)
 }
 
 // Create creates the specific menu
-func (sqlm SQLMenu) Create(m menu.Menu, userID int) (*int, error) {
+func (sqlm SQLMenu) Create(m model.Menu, userID int) (*int, error) {
 	// if err := validateRecipe(r); err != nil {
 	// 	return nil, err
 	// }
@@ -133,7 +132,7 @@ func (sqlm SQLMenu) Create(m menu.Menu, userID int) (*int, error) {
 }
 
 // Update updates the specific menu
-func (sqlm SQLMenu) Update(m menu.Menu, id int, userID int) error {
+func (sqlm SQLMenu) Update(m model.Menu, id int, userID int) error {
 	// if err := validateRecipe(r); err != nil {
 	// 	return err
 	// }

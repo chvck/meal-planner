@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/chvck/meal-planner/datamodel"
-	"github.com/chvck/meal-planner/model/recipe"
 )
 
 type RecipeService struct {
@@ -10,17 +9,17 @@ type RecipeService struct {
 }
 
 // GetByIDWithIngredients retrieves a recipe by id
-func (rs RecipeService) GetByIDWithIngredients(id int, userID int) (*recipe.Recipe, error) {
+func (rs RecipeService) GetByIDWithIngredients(id int, userID int) (*model.Recipe, error) {
 	return rs.dm.One(id, userID)
 }
 
 // All retrieves all recipes
-func (rs RecipeService) All(limit int, offset int, userID int) ([]recipe.Recipe, error) {
+func (rs RecipeService) All(limit int, offset int, userID int) ([]model.Recipe, error) {
 	return rs.dm.AllWithLimit(limit, offset, userID)
 }
 
 // Create creates a new recipe
-func (rs RecipeService) Create(r recipe.Recipe, userID int) (*recipe.Recipe, error) {
+func (rs RecipeService) Create(r model.Recipe, userID int) (*model.Recipe, error) {
 	rID, err := rs.dm.Create(r, userID)
 	if err != nil {
 		return nil, err
@@ -30,7 +29,7 @@ func (rs RecipeService) Create(r recipe.Recipe, userID int) (*recipe.Recipe, err
 }
 
 // Update updates a recipe
-func (rs RecipeService) Update(r recipe.Recipe, id int, userID int) error {
+func (rs RecipeService) Update(r model.Recipe, id int, userID int) error {
 	return rs.dm.Update(r, id, userID)
 }
 

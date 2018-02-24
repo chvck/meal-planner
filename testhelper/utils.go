@@ -8,40 +8,36 @@ import (
 	"testing"
 
 	"github.com/chvck/meal-planner/config"
-	"github.com/chvck/meal-planner/model/menu"
-	"github.com/chvck/meal-planner/model/planner"
-	"github.com/chvck/meal-planner/model/recipe"
 	"github.com/mattes/migrate"
 	_ "github.com/mattes/migrate/database/postgres"
 	_ "github.com/mattes/migrate/source/file"
 
 	"github.com/chvck/meal-planner/model/ingredient"
-	"github.com/chvck/meal-planner/model/user"
 )
 
 type userWithPassword struct {
-	user.User
+	model.User
 	Password string `json:"password"`
 }
 
 // HelperCreateUsers writes users to the provided database using the fixtures at the path provided
-func HelperCreateUsers(t *testing.T, db *sql.DB, path string) *map[int]user.User {
+func HelperCreateUsers(t *testing.T, db *sql.DB, path string) *map[int]model.User {
 	bytes := HelperLoadFixture(t, path)
 	var users []userWithPassword
 	if err := json.Unmarshal(bytes, &users); err != nil {
 		t.Fatal(err)
 	}
 
-	userIDToUser := make(map[int]user.User)
+	userIDToUser := make(map[int]model.User)
 	for _, user := range users {
 		query := `INSERT INTO "user" (id, "username", "email", "created_at", "updated_at", "last_login", "password")
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`
-		if _, err := db.Exec(query, user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt, user.LastLogin.Int64, user.Password); err != nil {
+		if _, err := db.Exec(query, user.ID, model.Username, user.Email, user.CreatedAt, user.UpdatedAt, user.LastLogin.Int64, user.Password); err != nil {
 			t.Error(query)
 			t.Fatal(err)
 		}
 
-		userIDToUser[user.ID] = user.User
+		userIDToUser[user.ID] = model.User
 	}
 
 	return &userIDToUser
@@ -71,14 +67,14 @@ func HelperCreateIngredients(t *testing.T, db *sql.DB, path string) *map[int][]i
 }
 
 // HelperCreateRecipes writes recipes to the provided database using the fixtures at the path provided
-func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.Recipe {
+func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]model.Recipe {
 	bytes := HelperLoadFixture(t, path)
-	var recipes []recipe.Recipe
+	var recipes []model.Recipe
 	if err := json.Unmarshal(bytes, &recipes); err != nil {
 		t.Fatal(err)
 	}
 
-	idToRecipe := make(map[int]recipe.Recipe)
+	idToRecipe := make(map[int]model.Recipe)
 	for _, rec := range recipes {
 		query := `INSERT INTO "recipe" (id, "name", "instructions", "yield", "prep_time", "cook_time", "description", "user_id")
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
@@ -95,14 +91,14 @@ func HelperCreateRecipes(t *testing.T, db *sql.DB, path string) *map[int]recipe.
 }
 
 // HelperCreateMenus writes menus + nested recipes + ingredients to the provided database using the fixtures at the path provided
-func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu {
+func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]model.Menu {
 	bytes := HelperLoadFixture(t, path)
-	var menus []menu.Menu
+	var menus []model.Menu
 	if err := json.Unmarshal(bytes, &menus); err != nil {
 		t.Fatal(err)
 	}
 
-	idToMenu := make(map[int]menu.Menu)
+	idToMenu := make(map[int]model.Menu)
 	for _, m := range menus {
 		query := `INSERT INTO "menu" (id, "name", "description", "user_id")
 		VALUES ($1, $2, $3, $4)`
@@ -146,14 +142,14 @@ func HelperCreateMenus(t *testing.T, db *sql.DB, path string) *map[int]menu.Menu
 }
 
 // HelperCreatePlanners writes planners + nested relations to the provided database using the fixtures at the path provided
-func HelperCreatePlanners(t *testing.T, db *sql.DB, path string) *map[int]planner.Planner {
+func HelperCreatePlanners(t *testing.T, db *sql.DB, path string) *map[int]model.Planner {
 	bytes := HelperLoadFixture(t, path)
-	var planners []planner.Planner
+	var planners []model.Planner
 	if err := json.Unmarshal(bytes, &planners); err != nil {
 		t.Fatal(err)
 	}
 
-	idToPlanner := make(map[int]planner.Planner)
+	idToPlanner := make(map[int]model.Planner)
 	for _, p := range planners {
 		query := `INSERT INTO "planner" (id, "when", "for", "user_id")
 		VALUES ($1, $2, $3, $4)`
@@ -289,7 +285,7 @@ func HelperMigrate() {
 	}
 }
 
-func createRecipes(t *testing.T, db *sql.DB, recipes []recipe.Recipe, joinFunc func(int)) {
+func createRecipes(t *testing.T, db *sql.DB, recipes []model.Recipe, joinFunc func(int)) {
 	for _, rec := range recipes {
 		query := `INSERT INTO "recipe" (id, "name", "instructions", "yield", "prep_time", "cook_time", "description", "user_id")
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`

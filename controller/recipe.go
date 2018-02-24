@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/chvck/meal-planner/model/recipe"
-	"github.com/chvck/meal-planner/model/user"
 	"github.com/chvck/meal-planner/store"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -22,7 +21,7 @@ const (
 // RecipeIndex is the HTTP handler for the recipe index endpoint
 func RecipeIndex(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
-	u := context.Get(r, "user").(user.User)
+	u := context.Get(r, "user").(model.User)
 	perPage := getURLParameterAsInt(r.URL, "perPage", defaultRecipePerPage)
 	offset := getURLParameterAsInt(r.URL, "offset", defaultRecipeOffset)
 	recipes, err := recipe.AllWithLimit(db, perPage, offset, u.ID)
@@ -39,7 +38,7 @@ func RecipeIndex(w http.ResponseWriter, r *http.Request) {
 func RecipeByID(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
 	vars := mux.Vars(r)
-	u := context.Get(r, "user").(user.User)
+	u := context.Get(r, "user").(model.User)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
@@ -60,7 +59,7 @@ func RecipeByID(w http.ResponseWriter, r *http.Request) {
 // RecipeCreate is the HTTP handler for creating a recipe
 func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
-	var re recipe.Recipe
+	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -73,7 +72,7 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := context.Get(r, "user").(user.User)
+	u := context.Get(r, "user").(model.User)
 	_, err = recipe.Create(db, re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
@@ -85,7 +84,7 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 // RecipeUpdate is the HTTP handler for updating a recipe
 func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
-	u := context.Get(r, "user").(user.User)
+	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -94,7 +93,7 @@ func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var re recipe.Recipe
+	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -118,7 +117,7 @@ func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 // RecipeDelete is the HTTP handler for deleting a recipe
 func RecipeDelete(w http.ResponseWriter, r *http.Request) {
 	db := store.Database()
-	u := context.Get(r, "user").(user.User)
+	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 
 	id, err := strconv.Atoi(vars["id"])
