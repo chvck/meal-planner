@@ -1,5 +1,7 @@
 package datamodel
 
+import "github.com/chvck/meal-planner/model"
+
 // UserDataModel is the datamodel for data store operations on the User model
 type UserDataModel interface {
 	One(id int) (*model.User, error)

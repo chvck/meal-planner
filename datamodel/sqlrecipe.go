@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model"
 	"github.com/shopspring/decimal"
 	null "gopkg.in/guregu/null.v3"
 )

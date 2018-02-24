@@ -1,5 +1,7 @@
 package datamodel
 
+import "github.com/chvck/meal-planner/model"
+
 // PlannerDataModel is the datamodel for data store operations on the Planner model
 type PlannerDataModel interface {
 	All(int, int, int) ([]model.Planner, error)

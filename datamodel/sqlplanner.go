@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model"
 )
 
 // SQLPlanner is a Planner datamodel backing onto a sql database

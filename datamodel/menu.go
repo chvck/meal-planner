@@ -1,5 +1,7 @@
 package datamodel
 
+import "github.com/chvck/meal-planner/model"
+
 // MenuDataModel is the datamodel for data store operations on the Menu model
 type MenuDataModel interface {
 	One(id int, userID int) (*model.Menu, error)

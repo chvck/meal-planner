@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/chvck/meal-planner/datamodel"
+	"github.com/chvck/meal-planner/model"
 )
 
 type RecipeService struct {

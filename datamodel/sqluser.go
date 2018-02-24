@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

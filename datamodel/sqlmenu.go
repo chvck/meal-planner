@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/chvck/meal-planner/db"
+	"github.com/chvck/meal-planner/model"
 )
 
 // SQLMenu is a Menu datamodel backing onto a sql database
