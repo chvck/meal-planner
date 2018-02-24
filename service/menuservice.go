@@ -5,18 +5,34 @@ import (
 	"github.com/chvck/meal-planner/model"
 )
 
-type MenuService struct {
+// MenuService is the service for interacting with Menus
+type MenuService interface {
+	GetByID(id int, userID int) (*model.Menu, error)
+	GetByIDWithRecipes(id int, userID int) (*model.Menu, error)
+	All(limit int, offset int, userID int) ([]model.Menu, error)
+	AllWithRecipes(limit int, offset int, userID int) ([]model.Menu, error)
+	Create(m model.Menu, userID int) (*model.Menu, error)
+	Update(m model.Menu, id int, userID int) error
+	Delete(id int, userID int) error
+}
+
+type menuService struct {
 	mdm datamodel.MenuDataModel
 	rdm datamodel.RecipeDataModel
 }
 
+// NewMenuService creates a new menu service
+func NewMenuService(mdm datamodel.MenuDataModel, rdm datamodel.RecipeDataModel) MenuService {
+	return &menuService{mdm: mdm, rdm: rdm}
+}
+
 // GetByID retrieves a menu by id
-func (ms MenuService) GetByID(id int, userID int) (*model.Menu, error) {
+func (ms menuService) GetByID(id int, userID int) (*model.Menu, error) {
 	return ms.mdm.One(id, userID)
 }
 
 // GetByIDWithRecipes retrieves a menu by id, including its recipes
-func (ms MenuService) GetByIDWithRecipes(id int, userID int) (*model.Menu, error) {
+func (ms menuService) GetByIDWithRecipes(id int, userID int) (*model.Menu, error) {
 	m, err := ms.mdm.One(id, userID)
 	if err != nil {
 		return nil, err
@@ -34,12 +50,12 @@ func (ms MenuService) GetByIDWithRecipes(id int, userID int) (*model.Menu, error
 }
 
 // All retrieves all menus
-func (ms MenuService) All(limit int, offset int, userID int) ([]model.Menu, error) {
+func (ms menuService) All(limit int, offset int, userID int) ([]model.Menu, error) {
 	return ms.mdm.AllWithLimit(limit, offset, userID)
 }
 
 // AllWithRecipes retrieves all menus, with recipes
-func (ms MenuService) AllWithRecipes(limit int, offset int, userID int) ([]model.Menu, error) {
+func (ms menuService) AllWithRecipes(limit int, offset int, userID int) ([]model.Menu, error) {
 	menus, err := ms.mdm.AllWithLimit(limit, offset, userID)
 	if err != nil {
 		return nil, err
@@ -71,7 +87,7 @@ func (ms MenuService) AllWithRecipes(limit int, offset int, userID int) ([]model
 }
 
 // Create creates a new menu
-func (ms MenuService) Create(m model.Menu, userID int) (*model.Menu, error) {
+func (ms menuService) Create(m model.Menu, userID int) (*model.Menu, error) {
 	mID, err := ms.mdm.Create(m, userID)
 	if err != nil {
 		return nil, err
@@ -81,11 +97,11 @@ func (ms MenuService) Create(m model.Menu, userID int) (*model.Menu, error) {
 }
 
 // Update updates a menu
-func (ms MenuService) Update(m model.Menu, id int, userID int) error {
+func (ms menuService) Update(m model.Menu, id int, userID int) error {
 	return ms.mdm.Update(m, id, userID)
 }
 
 // Delete deletes a menu
-func (ms MenuService) Delete(id int, userID int) error {
+func (ms menuService) Delete(id int, userID int) error {
 	return ms.mdm.Delete(id, userID)
 }

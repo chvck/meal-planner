@@ -5,19 +5,33 @@ import (
 	"github.com/chvck/meal-planner/model"
 )
 
-type PlannerService struct {
+// PlannerService is the service for interacting with Planners
+type PlannerService interface {
+	All(limit int, offset int, userID int) ([]model.Planner, error)
+	AllWithRelations(limit int, offset int, userID int) ([]model.Planner, error)
+	AddRecipe(when int, mealtime string, recipeID int, userID int) error
+	RemoveRecipe(when int, mealtime string, recipeID int, userID int) error
+}
+
+type plannerService struct {
 	mdm datamodel.MenuDataModel
 	rdm datamodel.RecipeDataModel
 	pdm datamodel.PlannerDataModel
 }
 
+// NewPlannerService creates a new planner service
+func NewPlannerService(mdm datamodel.MenuDataModel, rdm datamodel.RecipeDataModel,
+	pdm datamodel.PlannerDataModel) PlannerService {
+	return &plannerService{mdm: mdm, rdm: rdm, pdm: pdm}
+}
+
 // All retrieves all planners
-func (ps PlannerService) All(limit int, offset int, userID int) ([]model.Planner, error) {
+func (ps plannerService) All(limit int, offset int, userID int) ([]model.Planner, error) {
 	return ps.pdm.All(limit, offset, userID)
 }
 
 // AllWithRelations retrieves all planners, with menus and recipes
-func (ps PlannerService) AllWithRelations(limit int, offset int, userID int) ([]model.Planner, error) {
+func (ps plannerService) AllWithRelations(limit int, offset int, userID int) ([]model.Planner, error) {
 	planners, err := ps.pdm.All(limit, offset, userID)
 	if err != nil {
 		return nil, err
@@ -55,7 +69,7 @@ func (ps PlannerService) AllWithRelations(limit int, offset int, userID int) ([]
 }
 
 // AddRecipe adds a recipe to a planner, will create the planner if it doesn't exist
-func (ps PlannerService) AddRecipe(when int, mealtime string, recipeID int, userID int) error {
+func (ps plannerService) AddRecipe(when int, mealtime string, recipeID int, userID int) error {
 	p, err := ps.pdm.One(when, mealtime, userID)
 	if err != nil {
 		return err
@@ -76,6 +90,6 @@ func (ps PlannerService) AddRecipe(when int, mealtime string, recipeID int, user
 }
 
 // RemoveRecipe removes a recipe from a planner
-func (ps PlannerService) RemoveRecipe(when int, mealtime string, recipeID int, userID int) error {
+func (ps plannerService) RemoveRecipe(when int, mealtime string, recipeID int, userID int) error {
 	return ps.pdm.RemoveRecipe(when, mealtime, recipeID, userID)
 }
