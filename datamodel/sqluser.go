@@ -19,6 +19,11 @@ const (
 	iterations = 1e4
 )
 
+// NewSQLUser creates a new SQLUser datastore
+func NewSQLUser(dataStore db.DataStoreAdapter) *SQLUser {
+	return &SQLUser{dataStore: dataStore}
+}
+
 // One retrieves a single User by id
 func (sqlu SQLUser) One(id int) (*model.User, error) {
 	row := sqlu.dataStore.QueryOne(

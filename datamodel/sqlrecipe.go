@@ -12,7 +12,9 @@ import (
 	null "gopkg.in/guregu/null.v3"
 )
 
-// SQLRecipe is a Recipe datamodel backing onto a sql database
+// SQLRecipe is a Recipe datamodel backing onto a sql database.
+// It also deals with ingredients as a part of recipes as the
+// two are intrinsically linked together
 type SQLRecipe struct {
 	dataStore db.DataStoreAdapter
 }
@@ -27,9 +29,9 @@ type recipeWithPlannerID struct {
 	PlannerID int `db:"planner_id" json:"planner_id"`
 }
 
-// NewSQLRecipe creates a new SQLRecipe
-func NewSQLRecipe() *SQLRecipe {
-	return &SQLRecipe{}
+// NewSQLRecipe creates a new SQLRecipe datastore
+func NewSQLRecipe(dataStore db.DataStoreAdapter) *SQLRecipe {
+	return &SQLRecipe{dataStore: dataStore}
 }
 
 // FindByIngredientNames executes a search for recipes by ingredient name

@@ -4,7 +4,7 @@ import "github.com/chvck/meal-planner/model"
 
 // RecipeDataModel is the datamodel for data store operations on the Recipe model
 type RecipeDataModel interface {
-	FindByIngredientNames(names ...string) ([]model.Recipe, error)
+	FindByIngredientNames(names ...interface{}) ([]model.Recipe, error)
 	One(id int, userID int) (*model.Recipe, error)
 	AllWithLimit(limit int, offset int, userID int) ([]model.Recipe, error)
 	ForMenus(ids ...interface{}) (map[int][]model.Recipe, error)

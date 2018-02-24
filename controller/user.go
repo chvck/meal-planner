@@ -6,10 +6,23 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chvck/meal-planner/model/user"
-	"github.com/chvck/meal-planner/store"
+	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/service"
 	"github.com/dgrijalva/jwt-go"
 )
+
+type UserController interface {
+	UserLogin(w http.ResponseWriter, r *http.Request)
+	UserCreate(w http.ResponseWriter, r *http.Request)
+}
+
+type userController struct {
+	service service.UserService
+}
+
+func NewUserController(service service.UserService) UserController {
+	return &userController{service: service}
+}
 
 type userWithPassword struct {
 	model.User
@@ -26,7 +39,7 @@ type jwtToken struct {
 }
 
 // UserLogin is the HTTP handler for logging as user into the system
-func UserLogin(w http.ResponseWriter, r *http.Request) {
+func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var creds loginCredentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		log.Println(err.Error())
@@ -34,8 +47,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db := store.Database()
-	u := user.ValidatePassword(db, creds.Username, []byte(creds.Password))
+	u := uc.service.ValidatePassword(creds.Username, []byte(creds.Password))
 	if u == nil {
 		http.Error(w, "Invalid login credentials", http.StatusUnauthorized)
 		return
@@ -52,8 +64,7 @@ func UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserCreate is the HTTP handler for creating a user
-func UserCreate(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (uc userController) UserCreate(w http.ResponseWriter, r *http.Request) {
 	var u userWithPassword
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -68,17 +79,19 @@ func UserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = user.Create(db, u.User, []byte(u.Password))
+	created, err := uc.service.Create(u.User, []byte(u.Password))
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create user", http.StatusInternalServerError)
 		return
 	}
+
+	JSONResponse(created, w)
 }
 
 func createToken(user *model.User) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username":  model.Username,
+		"username":  user.Username,
 		"email":     user.Email,
 		"id":        user.ID,
 		"lastLogin": user.LastLogin,

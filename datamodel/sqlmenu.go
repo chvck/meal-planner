@@ -20,6 +20,11 @@ type menuWithPlannerID struct {
 	PlannerID int
 }
 
+// NewSQLMenu creates a new SQLMenu datastore
+func NewSQLMenu(dataStore db.DataStoreAdapter) *SQLMenu {
+	return &SQLMenu{dataStore: dataStore}
+}
+
 // One retrieves a single Menu by id
 func (sqlm SQLMenu) One(id int, userID int) (*model.Menu, error) {
 	row := sqlm.dataStore.QueryOne(

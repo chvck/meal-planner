@@ -7,11 +7,27 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/chvck/meal-planner/model/recipe"
-	"github.com/chvck/meal-planner/store"
+	"github.com/chvck/meal-planner/model"
+	"github.com/chvck/meal-planner/service"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 )
+
+type RecipeController interface {
+	RecipeIndex(w http.ResponseWriter, r *http.Request)
+	RecipeByID(w http.ResponseWriter, r *http.Request)
+	RecipeCreate(w http.ResponseWriter, r *http.Request)
+	RecipeUpdate(w http.ResponseWriter, r *http.Request)
+	RecipeDelete(w http.ResponseWriter, r *http.Request)
+}
+
+type recipeController struct {
+	service service.RecipeService
+}
+
+func NewRecipeController(service service.RecipeService) RecipeController {
+	return &recipeController{service: service}
+}
 
 const (
 	defaultRecipePerPage = 10
@@ -19,24 +35,22 @@ const (
 )
 
 // RecipeIndex is the HTTP handler for the recipe index endpoint
-func RecipeIndex(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (rc recipeController) RecipeIndex(w http.ResponseWriter, r *http.Request) {
 	u := context.Get(r, "user").(model.User)
 	perPage := getURLParameterAsInt(r.URL, "perPage", defaultRecipePerPage)
 	offset := getURLParameterAsInt(r.URL, "offset", defaultRecipeOffset)
-	recipes, err := recipe.AllWithLimit(db, perPage, offset, u.ID)
+	recipes, err := rc.service.All(perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipes", http.StatusNotFound)
 		return
 	}
 
-	JSONResponse(*recipes, w)
+	JSONResponse(recipes, w)
 }
 
 // RecipeByID is the HTTP handler for fetching a single recipe
-func RecipeByID(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (rc recipeController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	u := context.Get(r, "user").(model.User)
 	id, err := strconv.Atoi(vars["id"])
@@ -46,7 +60,7 @@ func RecipeByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	recipe, err := recipe.One(db, id, u.ID)
+	recipe, err := rc.service.GetByIDWithIngredients(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not retrieve recipe", http.StatusNotFound)
@@ -57,8 +71,7 @@ func RecipeByID(w http.ResponseWriter, r *http.Request) {
 }
 
 // RecipeCreate is the HTTP handler for creating a recipe
-func RecipeCreate(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) {
 	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -73,7 +86,7 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u := context.Get(r, "user").(model.User)
-	_, err = recipe.Create(db, re, u.ID)
+	_, err = rc.service.Create(re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
@@ -82,8 +95,7 @@ func RecipeCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 // RecipeUpdate is the HTTP handler for updating a recipe
-func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (rc recipeController) RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 	id, err := strconv.Atoi(vars["id"])
@@ -106,7 +118,7 @@ func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = recipe.Update(db, re, id, u.ID)
+	err = rc.service.Update(re, id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
@@ -115,8 +127,7 @@ func RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 // RecipeDelete is the HTTP handler for deleting a recipe
-func RecipeDelete(w http.ResponseWriter, r *http.Request) {
-	db := store.Database()
+func (rc recipeController) RecipeDelete(w http.ResponseWriter, r *http.Request) {
 	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 
@@ -127,7 +138,7 @@ func RecipeDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = recipe.Delete(db, id, u.ID)
+	err = rc.service.Delete(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not delete recipe", http.StatusInternalServerError)

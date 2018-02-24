@@ -12,6 +12,11 @@ type SQLPlanner struct {
 	dataStore db.DataStoreAdapter
 }
 
+// NewSQLPlanner creates a new SQLPlanner datastore
+func NewSQLPlanner(dataStore db.DataStoreAdapter) *SQLPlanner {
+	return &SQLPlanner{dataStore: dataStore}
+}
+
 // All retrieves Planners between two dates
 func (sqlp SQLPlanner) All(start int, end int, userID int) ([]model.Planner, error) {
 	rows, err := sqlp.dataStore.Query(

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/chvck/meal-planner/controller"
+	"github.com/chvck/meal-planner/model"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
@@ -16,19 +16,19 @@ type exception struct {
 	Message string `json:"message"`
 }
 
-func routes() *mux.Router {
+func routes(handler *Handler) *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeIndex)).Methods("GET")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeByID)).Methods("GET")
-	router.HandleFunc("/recipe/", validateMiddleware(controller.RecipeCreate)).Methods("POST")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeUpdate)).Methods("POST")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(controller.RecipeDelete)).Methods("DELETE")
+	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeIndex)).Methods("GET")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeByID)).Methods("GET")
+	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeCreate)).Methods("POST")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeUpdate)).Methods("POST")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeDelete)).Methods("DELETE")
 
-	router.HandleFunc("/menu/{id}", validateMiddleware(controller.MenuByID)).Methods("GET")
+	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuByID)).Methods("GET")
 
-	router.HandleFunc("/login/", controller.UserLogin).Methods("POST")
-	router.HandleFunc("/register/", controller.UserCreate).Methods("POST")
+	router.HandleFunc("/login/", handler.UserLogin).Methods("POST")
+	router.HandleFunc("/register/", handler.UserCreate).Methods("POST")
 
 	return router
 }
