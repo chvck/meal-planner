@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,18 +13,16 @@ import (
 )
 
 type TestMenuDataModel struct {
-	OnOneCalled         func(id int, userID int) (*model.Menu, error)
-	OnAllCalled         func(limit int, offset int, userID int) ([]model.Menu, error)
 	OnForPlannersCalled func(ids ...interface{}) (map[int][]model.Menu, error)
-	OnCreateCalled      func(m model.Menu, userID int) (*int, error)
+	Menus               []model.Menu
 }
 
 func (tmd TestMenuDataModel) One(id int, userID int) (*model.Menu, error) {
-	return tmd.OnOneCalled(id, userID)
+	return &tmd.Menus[0], nil
 }
 
 func (tmd TestMenuDataModel) AllWithLimit(limit int, offset int, userID int) ([]model.Menu, error) {
-	return tmd.OnAllCalled(limit, offset, userID)
+	return tmd.Menus[offset : limit+offset], nil
 }
 
 // Defer the result of this to the caller
@@ -32,7 +31,8 @@ func (tmd TestMenuDataModel) ForPlanners(ids ...interface{}) (map[int][]model.Me
 }
 
 func (tmd TestMenuDataModel) Create(m model.Menu, userID int) (*int, error) {
-	return tmd.OnCreateCalled(m, userID)
+	id := 10
+	return &id, nil
 }
 
 func (tmd TestMenuDataModel) Update(m model.Menu, id int, userID int) error {
@@ -43,18 +43,17 @@ func (tmd TestMenuDataModel) Delete(id int, userID int) error {
 	return nil
 }
 
+func NewTestMenuDataModel(menus []model.Menu) *TestMenuDataModel {
+	menuDataModel := TestMenuDataModel{
+		Menus: menus,
+	}
+
+	return &menuDataModel
+}
+
 func TestMenuServiceGetByID(t *testing.T) {
-	mDataModel := TestMenuDataModel{}
-	expected := model.Menu{
-		ID:          1,
-		Name:        "Test",
-		Description: null.StringFrom("Test desc"),
-		UserID:      1,
-	}
-	mDataModel.OnOneCalled = func(id int, userID int) (*model.Menu, error) {
-		actual := expected
-		return &actual, nil
-	}
+	mDataModel := NewTestMenuDataModel(menus(1))
+	expected := menus(1)[0]
 
 	rDataModel := TestRecipeDataModel{}
 
@@ -67,23 +66,16 @@ func TestMenuServiceGetByID(t *testing.T) {
 }
 
 func TestMenuServiceGetByIDWithRecipes(t *testing.T) {
-	mDataModel := TestMenuDataModel{}
-	expected := model.Menu{
-		ID:          1,
-		Name:        "Test",
-		Description: null.StringFrom("Test desc"),
-		UserID:      1,
-	}
-	mDataModel.OnOneCalled = func(id int, userID int) (*model.Menu, error) {
-		actual := expected
-		return &actual, nil
-	}
+	mDataModel := NewTestMenuDataModel(menus(1))
+	expected := menus(1)[0]
 
-	recipes := recipes()
+	recipes := recipes(1)
 
 	rDataModel := TestRecipeDataModel{}
 	rDataModel.OnForMenusCalled = func(ids ...interface{}) (map[int][]model.Recipe, error) {
-		return recipes, nil
+		actual := make(map[int][]model.Recipe)
+		actual[1] = recipes[1]
+		return actual, nil
 	}
 
 	expected.Recipes = recipes[1]
@@ -96,41 +88,122 @@ func TestMenuServiceGetByIDWithRecipes(t *testing.T) {
 	assert.Equal(t, &expected, m)
 }
 
-func recipes() map[int][]model.Recipe {
-	recipes := make(map[int][]model.Recipe)
-	recipes[1] = []model.Recipe{
-		model.Recipe{
-			ID:           1,
-			Name:         "recipe 1",
-			Instructions: "instructions 1",
-			Description:  null.StringFrom("description 1"),
-			CookTime:     null.IntFrom(15),
-			PrepTime:     null.IntFrom(25),
-			UserID:       1,
-			Yield:        null.IntFrom(2),
-		},
-		model.Recipe{
-			ID:           2,
-			Name:         "recipe 2",
-			Instructions: "instructions 2",
-			Description:  null.StringFrom("description 2"),
-			CookTime:     null.IntFrom(12),
-			PrepTime:     null.IntFrom(22),
-			UserID:       1,
-			Yield:        null.IntFrom(2),
-		},
+func TestMenuServiceAll(t *testing.T) {
+	mDataModel := NewTestMenuDataModel(menus(20))
+	menus := menus(20)
+
+	rDataModel := TestRecipeDataModel{}
+
+	service := service.NewMenuService(mDataModel, rDataModel)
+
+	result, err := service.All(10, 0, 1)
+
+	assert.Nil(t, err)
+	assert.Equal(t, menus[0:10], result)
+}
+
+func TestMenuServiceAllLimit(t *testing.T) {
+	mDataModel := NewTestMenuDataModel(menus(20))
+	menus := menus(20)
+
+	rDataModel := TestRecipeDataModel{}
+
+	service := service.NewMenuService(mDataModel, rDataModel)
+
+	result, err := service.All(5, 0, 1)
+
+	assert.Nil(t, err)
+	assert.Equal(t, menus[0:5], result)
+}
+
+func TestMenuServiceAllOffset(t *testing.T) {
+	mDataModel := NewTestMenuDataModel(menus(20))
+	menus := menus(20)
+
+	rDataModel := TestRecipeDataModel{}
+
+	service := service.NewMenuService(mDataModel, rDataModel)
+
+	result, err := service.All(10, 5, 1)
+
+	assert.Nil(t, err)
+	assert.Equal(t, menus[5:15], result)
+}
+
+func TestMenuServiceAllWithRecipes(t *testing.T) {
+	mDataModel := NewTestMenuDataModel(menus(20))
+	menus := menus(20)
+
+	rDataModel := TestRecipeDataModel{}
+	recipes := recipes(20)
+
+	rDataModel.OnForMenusCalled = func(ids ...interface{}) (map[int][]model.Recipe, error) {
+		actual := recipes
+		return actual, nil
 	}
-	recipes[2] = []model.Recipe{
-		model.Recipe{
-			ID:           3,
-			Name:         "recipe 3",
-			Instructions: "instructions 3",
-			Description:  null.StringFrom("description 3"),
-			CookTime:     null.IntFrom(10),
-			PrepTime:     null.IntFrom(20),
-			UserID:       1,
-			Yield:        null.IntFrom(1),
-		},
+
+	service := service.NewMenuService(mDataModel, rDataModel)
+
+	result, err := service.AllWithRecipes(10, 0, 1)
+	expected := menus[0:10]
+	for i := range expected {
+		expected[i].Recipes = recipes[expected[i].ID]
+	}
+
+	assert.Nil(t, err)
+	assert.Equal(t, menus[0:10], result)
+}
+
+func TestMenuServiceCreate(t *testing.T) {
+	mDataModel := NewTestMenuDataModel(menus(20))
+	rDataModel := TestRecipeDataModel{}
+
+	service := service.NewMenuService(mDataModel, rDataModel)
+
+	m := model.Menu{
+		Name:        "test0",
+		Description: null.StringFrom("desc0"),
+		UserID:      1,
+	}
+	result, err := service.Create(m, 1)
+	m.ID = 1
+
+	assert.Nil(t, err)
+	assert.Equal(t, &m, result)
+}
+
+func menus(numMenus int) []model.Menu {
+	menus := []model.Menu{}
+
+	for i := 0; i < numMenus; i++ {
+		m := model.Menu{
+			ID:          1,
+			Name:        fmt.Sprintf("test%v", i),
+			Description: null.StringFrom(fmt.Sprintf("desc%v", i)),
+			UserID:      1,
+		}
+
+		menus = append(menus, m)
+	}
+
+	return menus
+}
+
+func recipes(numRecipes int) map[int][]model.Recipe {
+	recipes := make(map[int][]model.Recipe)
+	for i := 0; i < numRecipes; i++ {
+		recipes[i] = []model.Recipe{
+			model.Recipe{
+				ID:           i,
+				Name:         fmt.Sprintf("recipe %v", i),
+				Instructions: fmt.Sprintf("instructions %v", i),
+				Description:  null.StringFrom(fmt.Sprintf("description %v", i)),
+				CookTime:     null.IntFrom(15),
+				PrepTime:     null.IntFrom(25),
+				UserID:       1,
+				Yield:        null.IntFrom(2),
+			},
+		}
 	}
 
 	return recipes
