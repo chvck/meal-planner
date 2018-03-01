@@ -18,7 +18,12 @@ type TestMenuDataModel struct {
 }
 
 func (tmd TestMenuDataModel) One(id int, userID int) (*model.Menu, error) {
-	return &tmd.Menus[0], nil
+	for _, m := range tmd.Menus {
+		if m.ID == id {
+			return &m, nil
+		}
+	}
+	return nil, nil
 }
 
 func (tmd TestMenuDataModel) AllWithLimit(limit int, offset int, userID int) ([]model.Menu, error) {
@@ -69,7 +74,7 @@ func TestMenuServiceGetByIDWithRecipes(t *testing.T) {
 	mDataModel := NewTestMenuDataModel(menus(1))
 	expected := menus(1)[0]
 
-	recipes := recipes(1)
+	recipes := recipesForMenus(1)
 
 	rDataModel := TestRecipeDataModel{}
 	rDataModel.OnForMenusCalled = func(ids ...interface{}) (map[int][]model.Recipe, error) {
@@ -135,7 +140,7 @@ func TestMenuServiceAllWithRecipes(t *testing.T) {
 	menus := menus(20)
 
 	rDataModel := TestRecipeDataModel{}
-	recipes := recipes(20)
+	recipes := recipesForMenus(20)
 
 	rDataModel.OnForMenusCalled = func(ids ...interface{}) (map[int][]model.Recipe, error) {
 		actual := recipes
@@ -166,10 +171,16 @@ func TestMenuServiceCreate(t *testing.T) {
 		UserID:      1,
 	}
 	result, err := service.Create(m, 1)
-	m.ID = 1
+
+	expected := model.Menu{
+		Name:        "test9",
+		Description: null.StringFrom("desc9"),
+		UserID:      1,
+		ID:          10,
+	}
 
 	assert.Nil(t, err)
-	assert.Equal(t, &m, result)
+	assert.Equal(t, &expected, result)
 }
 
 func menus(numMenus int) []model.Menu {
@@ -177,7 +188,7 @@ func menus(numMenus int) []model.Menu {
 
 	for i := 0; i < numMenus; i++ {
 		m := model.Menu{
-			ID:          1,
+			ID:          i + 1,
 			Name:        fmt.Sprintf("test%v", i),
 			Description: null.StringFrom(fmt.Sprintf("desc%v", i)),
 			UserID:      1,
@@ -189,7 +200,7 @@ func menus(numMenus int) []model.Menu {
 	return menus
 }
 
-func recipes(numRecipes int) map[int][]model.Recipe {
+func recipesForMenus(numRecipes int) map[int][]model.Recipe {
 	recipes := make(map[int][]model.Recipe)
 	for i := 0; i < numRecipes; i++ {
 		recipes[i] = []model.Recipe{
