@@ -1,8 +1,11 @@
 package main
 
 import (
-	"github.com/chvck/meal-planner/config"
 	"log"
+	"os"
+	"os/signal"
+
+	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/server"
 )
 
@@ -13,5 +16,16 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	log.Fatal(server.Run(conf))
+	stop := make(chan os.Signal, 1)
+
+	signal.Notify(stop, os.Interrupt)
+
+	srv, err := server.Run(conf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	<-stop
+	log.Println("Stopping server")
+	srv.Shutdown(nil)
 }

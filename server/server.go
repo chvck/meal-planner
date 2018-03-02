@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/chvck/meal-planner/controller"
@@ -13,11 +14,11 @@ import (
 )
 
 // Run is the entry point for running the server
-func Run(cfg *config.Info) error {
+func Run(cfg *config.Info) (*http.Server, error) {
 	database := &db.SqlxAdapter{}
 	err := database.Initialize(cfg.DbType, cfg.DbString)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	userDataModel := datamodel.NewSQLUser(database)
@@ -39,5 +40,13 @@ func Run(cfg *config.Info) error {
 	r := routes(handler)
 
 	address := fmt.Sprintf("%v:%v", cfg.Hostname, cfg.HTTPPort)
-	return http.ListenAndServe(address, r)
+
+	srv := &http.Server{Addr: address, Handler: r}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Printf("Error running server: %s", err)
+		}
+	}()
+
+	return srv, nil
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// RecipeController is the interface for a controller than handles recipe endpoints
 type RecipeController interface {
 	RecipeIndex(w http.ResponseWriter, r *http.Request)
 	RecipeByID(w http.ResponseWriter, r *http.Request)
@@ -25,6 +26,7 @@ type recipeController struct {
 	service service.RecipeService
 }
 
+// NewRecipeController creates a new recipe controller
 func NewRecipeController(service service.RecipeService) RecipeController {
 	return &recipeController{service: service}
 }
@@ -86,12 +88,14 @@ func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	u := context.Get(r, "user").(model.User)
-	_, err = rc.service.Create(re, u.ID)
+	created, err := rc.service.Create(re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
 		return
 	}
+
+	JSONResponse(created, w)
 }
 
 // RecipeUpdate is the HTTP handler for updating a recipe

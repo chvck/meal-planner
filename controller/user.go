@@ -11,6 +11,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// UserController is the interface for a controller than handles user endpoints
 type UserController interface {
 	UserLogin(w http.ResponseWriter, r *http.Request)
 	UserCreate(w http.ResponseWriter, r *http.Request)
@@ -20,6 +21,7 @@ type userController struct {
 	service service.UserService
 }
 
+// NewUserController creates a new user controller
 func NewUserController(service service.UserService) UserController {
 	return &userController{service: service}
 }
@@ -95,6 +97,7 @@ func createToken(user *model.User) (*jwtToken, error) {
 		"email":     user.Email,
 		"id":        user.ID,
 		"lastLogin": user.LastLogin,
+		"level":     model.LevelUser,
 	})
 	tokenString, err := token.SignedString([]byte("secret"))
 	if err != nil {

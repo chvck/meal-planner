@@ -13,3 +13,9 @@ type User struct {
 	UpdatedAt int      `db:"updated_at" json:"updatedAt"`
 	LastLogin null.Int `db:"last_login" json:"lastLogin"`
 }
+
+const (
+	LevelUser  = 1.0
+	LevelAdmin = 2.0
+	levelTest  = 4.0
+)

@@ -19,13 +19,21 @@ type exception struct {
 func routes(handler *Handler) *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeIndex)).Methods("GET")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeByID)).Methods("GET")
-	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeCreate)).Methods("POST")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeUpdate)).Methods("POST")
-	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeDelete)).Methods("DELETE")
+	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeIndex, model.LevelUser)).Methods("GET")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeByID, model.LevelUser)).Methods("GET")
+	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeCreate, model.LevelUser)).Methods("POST")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeUpdate, model.LevelUser)).Methods("PUT")
+	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeDelete, model.LevelUser)).Methods("DELETE")
 
-	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuByID)).Methods("GET")
+	router.HandleFunc("/menu/", validateMiddleware(handler.MenuIndex, model.LevelUser)).Methods("GET")
+	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuByID, model.LevelUser)).Methods("GET")
+	router.HandleFunc("/menu/", validateMiddleware(handler.MenuCreate, model.LevelUser)).Methods("POST")
+	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuUpdate, model.LevelUser)).Methods("PUT")
+	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuDelete, model.LevelUser)).Methods("DELETE")
+
+	// check the env and only add these in test in future
+	router.HandleFunc("/testuser/", validateMiddleware(test, model.LevelUser)).Methods("GET")
+	router.HandleFunc("/testadmin/", validateMiddleware(test, model.LevelAdmin)).Methods("GET")
 
 	router.HandleFunc("/login/", handler.UserLogin).Methods("POST")
 	router.HandleFunc("/register/", handler.UserCreate).Methods("POST")
@@ -33,10 +41,15 @@ func routes(handler *Handler) *mux.Router {
 	return router
 }
 
-func validateMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func test(w http.ResponseWriter, req *http.Request) {
+
+}
+
+func validateMiddleware(next http.HandlerFunc, reqLevel float64) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authorizationHeader := req.Header.Get("authorization")
 		if authorizationHeader == "" {
+			w.WriteHeader(http.StatusUnauthorized)
 			json.NewEncoder(w).Encode(exception{Message: "An authorization header is required"})
 			return
 		}
@@ -45,17 +58,26 @@ func validateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if len(bearerToken) == 2 {
 			token, err := jwt.Parse(bearerToken[1], parseToken)
 			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(exception{Message: err.Error()})
 				return
 			}
 
 			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+				if claims["level"].(float64) < reqLevel {
+					w.WriteHeader(http.StatusUnauthorized)
+					json.NewEncoder(w).Encode(exception{Message: "Not authorized"})
+				}
 				u := model.User{ID: int(claims["id"].(float64)), Username: claims["username"].(string)}
 				context.Set(req, "user", u)
 				next(w, req)
 			} else {
+				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(exception{Message: "Invalid authorization token"})
 			}
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(exception{Message: "Invalid authorization token"})
 		}
 	})
 }
