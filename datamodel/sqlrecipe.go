@@ -124,7 +124,7 @@ func (sqlr SQLRecipe) One(id int, userID int) (*model.Recipe, error) {
 
 // AllWithLimit retrieves x recipes starting from an offset
 func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]model.Recipe, error) {
-	var recipes []model.Recipe
+	recipes := []model.Recipe{}
 	var recipeIDs []interface{}
 	rows, err := sqlr.dataStore.Query(`SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 		FROM recipe r
@@ -354,9 +354,6 @@ func (sqlr SQLRecipe) Delete(id int, userID int) error {
 
 	rowsAccepted, err := tx.Exec(
 		`DELETE FROM "recipe" r
-		JOIN ingredient i ON i.recipe_id = r.id
-		LEFT JOIN menu_to_recipe mr ON mr.recipe_id = r.id
-		LEFT JOIN planner_to_recipe pr ON pr.recipe_id = i.id
 		WHERE r.id = ? and r.user_id = ?`, id, userID)
 	if err != nil {
 		return err

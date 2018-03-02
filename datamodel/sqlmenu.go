@@ -47,7 +47,7 @@ func (sqlm SQLMenu) One(id int, userID int) (*model.Menu, error) {
 
 // AllWithLimit retrieves x menus starting from an offset
 func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]model.Menu, error) {
-	var menus []model.Menu
+	menus := []model.Menu{}
 	rows, err := sqlm.dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
 		WHERE m.user_id = ?
@@ -156,8 +156,6 @@ func (sqlm SQLMenu) Update(m model.Menu, id int, userID int) error {
 func (sqlm SQLMenu) Delete(id int, userID int) error {
 	rowsAccepted, err := sqlm.dataStore.Exec(
 		`DELETE FROM "menu" m
-		LEFT JOIN menu_to_recipe mr ON mr.menu_id = m.id
-		LEFT JOIN planner_to_menu pm ON pm.menu_id = m.id
 		WHERE m.id = ? and m.user_id = ?`, id, userID)
 	if err != nil {
 		return err

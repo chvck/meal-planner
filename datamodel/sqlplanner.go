@@ -33,7 +33,7 @@ func (sqlp SQLPlanner) All(start int, end int, userID int) ([]model.Planner, err
 	}
 	defer rows.Close()
 
-	var planners []model.Planner
+	planners := []model.Planner{}
 	for rows.Next() {
 		p := model.Planner{}
 		if err := rows.Scan(&p.ID, &p.UserID, &p.When, &p.For); err != nil {

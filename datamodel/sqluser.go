@@ -28,7 +28,7 @@ func NewSQLUser(dataStore db.DataStoreAdapter) *SQLUser {
 func (sqlu SQLUser) One(id int) (*model.User, error) {
 	row := sqlu.dataStore.QueryOne(
 		`SELECT id, username, email, created_at, updated_at, last_login
-		FROM user
+		FROM "user"
 		WHERE id = ?;`,
 		id,
 	)
