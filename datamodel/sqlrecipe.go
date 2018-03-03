@@ -150,8 +150,12 @@ func (sqlr SQLRecipe) AllWithLimit(limit int, offset int, userID int) ([]model.R
 		return nil, err
 	}
 
+	if len(recipes) == 0 {
+		return recipes, nil
+	}
+
 	ingredientsByRecipe, err := ingredientsForRecipes(sqlr.dataStore, recipeIDs...)
-	if err != nil {
+	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
 
@@ -275,10 +279,6 @@ func (sqlr SQLRecipe) ForPlanners(ids ...interface{}) (map[int][]model.Recipe, e
 
 // Create creates the specific recipe
 func (sqlr SQLRecipe) Create(r model.Recipe, userID int) (*int, error) {
-	if err := validateRecipe(r); err != nil {
-		return nil, err
-	}
-
 	tx, err := sqlr.dataStore.NewTransaction()
 	if err != nil {
 		return nil, err
@@ -310,10 +310,6 @@ func (sqlr SQLRecipe) Create(r model.Recipe, userID int) (*int, error) {
 
 // Update updates the specific recipe
 func (sqlr SQLRecipe) Update(r model.Recipe, id int, userID int) error {
-	if err := validateRecipe(r); err != nil {
-		return err
-	}
-
 	tx, err := sqlr.dataStore.NewTransaction()
 	if err != nil {
 		return err
@@ -347,12 +343,7 @@ func (sqlr SQLRecipe) Update(r model.Recipe, id int, userID int) error {
 
 // Delete deletes the specific recipe
 func (sqlr SQLRecipe) Delete(id int, userID int) error {
-	tx, err := sqlr.dataStore.NewTransaction()
-	if err != nil {
-		return err
-	}
-
-	rowsAccepted, err := tx.Exec(
+	rowsAccepted, err := sqlr.dataStore.Exec(
 		`DELETE FROM "recipe" r
 		WHERE r.id = ? and r.user_id = ?`, id, userID)
 	if err != nil {
@@ -426,15 +417,4 @@ func ingredientsForRecipes(dataStore db.DataStoreAdapter, ids ...interface{}) (m
 	}
 
 	return m, nil
-}
-
-func validateRecipe(r model.Recipe) error {
-	if r.Name == "" {
-		return errors.New("name cannot be empty")
-	}
-	if r.Instructions == "" {
-		return errors.New("instructions cannot be empty")
-	}
-
-	return nil
 }

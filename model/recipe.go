@@ -1,6 +1,8 @@
 package model
 
 import (
+	"errors"
+
 	"gopkg.in/guregu/null.v3"
 )
 
@@ -15,4 +17,17 @@ type Recipe struct {
 	CookTime     null.Int     `db:"cook_time" json:"cook_time"`
 	Description  null.String  `db:"description" json:"description"`
 	Ingredients  []Ingredient `json:"ingredients"`
+}
+
+// Validate checks that the recipe is valid
+func (r Recipe) Validate() []error {
+	errs := []error{}
+	if r.Name == "" {
+		errs = append(errs, errors.New("name cannot be empty"))
+	}
+	if r.Instructions == "" {
+		errs = append(errs, errors.New("instructions cannot be empty"))
+	}
+
+	return errs
 }

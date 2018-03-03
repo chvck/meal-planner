@@ -44,7 +44,7 @@ func (rc recipeController) RecipeIndex(w http.ResponseWriter, r *http.Request) {
 	recipes, err := rc.service.All(perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not retrieve recipes", http.StatusNotFound)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -58,14 +58,14 @@ func (rc recipeController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
 	recipe, err := rc.service.GetByIDWithIngredients(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not retrieve recipe", http.StatusNotFound)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -74,16 +74,23 @@ func (rc recipeController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 
 // RecipeCreate is the HTTP handler for creating a recipe
 func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) {
-	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
+
+	var re model.Recipe
 	if err := json.Unmarshal(body, &re); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		return
+	}
+
+	errs := re.Validate()
+	if len(errs) != 0 {
+		JSONResponseWithCode(JSONError{Errors: errs}, w, http.StatusBadRequest)
 		return
 	}
 
@@ -91,11 +98,11 @@ func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) 
 	created, err := rc.service.Create(re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
-	JSONResponse(created, w)
+	JSONResponseWithCode(created, w, 201)
 }
 
 // RecipeUpdate is the HTTP handler for updating a recipe
@@ -105,7 +112,7 @@ func (rc recipeController) RecipeUpdate(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
@@ -113,21 +120,29 @@ func (rc recipeController) RecipeUpdate(w http.ResponseWriter, r *http.Request) 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(body, &re); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid recipe", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
-	err = rc.service.Update(re, id, u.ID)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Could not create recipe", http.StatusInternalServerError)
+	errs := re.Validate()
+	if len(errs) != 0 {
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
+
+	updated, err := rc.service.Update(re, id, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		return
+	}
+
+	JSONResponseWithCode(updated, w, 200)
 }
 
 // RecipeDelete is the HTTP handler for deleting a recipe
@@ -138,14 +153,16 @@ func (rc recipeController) RecipeDelete(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
 	err = rc.service.Delete(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not delete recipe", http.StatusInternalServerError)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
+
+	w.WriteHeader(204)
 }

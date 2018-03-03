@@ -10,7 +10,7 @@ type RecipeService interface {
 	GetByIDWithIngredients(id int, userID int) (*model.Recipe, error)
 	All(limit int, offset int, userID int) ([]model.Recipe, error)
 	Create(r model.Recipe, userID int) (*model.Recipe, error)
-	Update(r model.Recipe, id int, userID int) error
+	Update(r model.Recipe, id int, userID int) (*model.Recipe, error)
 	Delete(id int, userID int) error
 }
 
@@ -44,8 +44,12 @@ func (rs recipeService) Create(r model.Recipe, userID int) (*model.Recipe, error
 }
 
 // Update updates a recipe
-func (rs recipeService) Update(r model.Recipe, id int, userID int) error {
-	return rs.dm.Update(r, id, userID)
+func (rs recipeService) Update(r model.Recipe, id int, userID int) (*model.Recipe, error) {
+	if err := rs.dm.Update(r, id, userID); err != nil {
+		return nil, err
+	}
+
+	return rs.dm.One(id, userID)
 }
 
 // Delete delete a recipe

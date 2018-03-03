@@ -55,6 +55,12 @@
       "id": 3,
       "name": "Chicken n ribs",
       "user_id": 2
+    },
+    {
+      "id": 4,
+      "name": "Rice n peas with jerk chicken",
+      "description": "Secret is, they ain't peas",
+      "user_id": 1
     }
   ],
   "recipes": [
