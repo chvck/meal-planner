@@ -11,6 +11,7 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/chvck/meal-planner/config"
 	"github.com/chvck/meal-planner/model"
@@ -269,7 +270,14 @@ func createUsers(t *testing.T, users []userWithPassword) {
 		query := `INSERT INTO "user" (id, "username", "email", "created_at", "updated_at", "last_login", "password")
 		VALUES (?, ?, ?, ?, ?, ?, ?)`
 		query = sqlDb.Rebind(query)
-		if _, err := sqlDb.Exec(query, user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt, user.LastLogin, user.Password); err != nil {
+
+		hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			panic(err)
+		}
+
+		if _, err := sqlDb.Exec(query, user.ID, user.Username, user.Email, user.CreatedAt, user.UpdatedAt,
+			user.LastLogin, hash); err != nil {
 			t.Error(query)
 			t.Fatal(err)
 		}

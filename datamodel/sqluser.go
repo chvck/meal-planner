@@ -1,7 +1,6 @@
 package datamodel
 
 import (
-	"errors"
 	"time"
 
 	"github.com/chvck/meal-planner/db"
@@ -73,10 +72,6 @@ func (sqlu SQLUser) AllWithLimit(limit int, offset int) ([]model.User, error) {
 
 // Create persists the specific User
 func (sqlu SQLUser) Create(u model.User, password []byte) (*int, error) {
-	if string(password) == "" {
-		return nil, errors.New("password cannot be empty")
-	}
-
 	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -90,7 +85,10 @@ func (sqlu SQLUser) Create(u model.User, password []byte) (*int, error) {
 	)
 
 	var userID int
-	row.Scan(&userID)
+	if err := row.Scan(&userID); err != nil {
+		return nil, err
+	}
+
 	return &userID, nil
 }
 

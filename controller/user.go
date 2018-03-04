@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -45,20 +46,21 @@ func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var creds loginCredentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid login credentials", http.StatusUnauthorized)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
 	u := uc.service.ValidatePassword(creds.Username, []byte(creds.Password))
 	if u == nil {
-		http.Error(w, "Invalid login credentials", http.StatusUnauthorized)
+		err := errors.New("invalid user credentials provided")
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusUnauthorized)
 		return
 	}
 
 	t, err := createToken(u)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not create user", http.StatusInternalServerError)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -72,23 +74,34 @@ func (uc userController) UserCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid user", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(body, &u); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid user", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		return
+	}
+
+	if errs := u.Validate(); len(errs) > 0 {
+		JSONResponseWithCode(JSONError{Errors: errs}, w, http.StatusBadRequest)
+		return
+	}
+
+	if err := model.ValidatePassword(u.Password); err != nil {
+		log.Println(err.Error())
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
 	created, err := uc.service.Create(u.User, []byte(u.Password))
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not create user", http.StatusInternalServerError)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
-	JSONResponse(created, w)
+	JSONResponseWithCode(created, w, 201)
 }
 
 func createToken(user *model.User) (*jwtToken, error) {
