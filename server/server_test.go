@@ -47,9 +47,9 @@ type seed struct {
 	Planners         []model.Planner    `json:"planners"`
 	Menus            []model.Menu       `json:"menus"`
 	Recipes          []model.Recipe     `json:"recipes"`
-	PlannerToRecipes plannerToRecipes   `json:"planner_to_recipes"`
-	MenuToRecipes    menuToRecipes      `json:"menu_to_recipes"`
-	PlannerToMenus   plannerToMenus     `json:"planner_to_menus"`
+	PlannerToRecipes []plannerToRecipes `json:"planner_to_recipe"`
+	MenuToRecipes    []menuToRecipes    `json:"menu_to_recipe"`
+	PlannerToMenus   []plannerToMenus   `json:"planner_to_menu"`
 }
 
 type resetOptions struct {
@@ -198,39 +198,45 @@ func resetDatabase(t *testing.T, opts resetOptions) {
 	createRelations(t, fixtures.PlannerToMenus, fixtures.PlannerToRecipes, fixtures.MenuToRecipes, opts)
 }
 
-func createRelations(t *testing.T, pToM plannerToMenus, pToR plannerToRecipes, mToR menuToRecipes, opts resetOptions) {
+func createRelations(t *testing.T, pToM []plannerToMenus, pToR []plannerToRecipes, mToR []menuToRecipes, opts resetOptions) {
 	if opts.recreatePlanners && opts.recreateMenus {
-		for _, mID := range pToM.MenuIDs {
-			query := `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
-		VALUES (?, ?)`
-			query = sqlDb.Rebind(query)
-			if _, err := sqlDb.Exec(query, pToM.PlannerID, mID); err != nil {
-				t.Error(query)
-				t.Fatal(err)
+		for _, rel := range pToM {
+			for _, mID := range rel.MenuIDs {
+				query := `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
+			VALUES (?, ?)`
+				query = sqlDb.Rebind(query)
+				if _, err := sqlDb.Exec(query, rel.PlannerID, mID); err != nil {
+					t.Error(query)
+					t.Fatal(err)
+				}
 			}
 		}
 	}
 
 	if opts.recreatePlanners && opts.recreateRecipes {
-		for _, rID := range pToR.RecipeIDs {
-			query := `INSERT INTO "planner_to_recipe" ("planner_id", "recipe_id")
+		for _, rel := range pToR {
+			for _, rID := range rel.RecipeIDs {
+				query := `INSERT INTO "planner_to_recipe" ("planner_id", "recipe_id")
 		VALUES (?, ?)`
-			query = sqlDb.Rebind(query)
-			if _, err := sqlDb.Exec(query, pToR.PlannerID, rID); err != nil {
-				t.Error(query)
-				t.Fatal(err)
+				query = sqlDb.Rebind(query)
+				if _, err := sqlDb.Exec(query, rel.PlannerID, rID); err != nil {
+					t.Error(query)
+					t.Fatal(err)
+				}
 			}
 		}
 	}
 
 	if opts.recreateRecipes && opts.recreateMenus {
-		for _, rID := range mToR.RecipeIDs {
-			query := `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
+		for _, rel := range mToR {
+			for _, rID := range rel.RecipeIDs {
+				query := `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
 		VALUES (?, ?)`
-			query = sqlDb.Rebind(query)
-			if _, err := sqlDb.Exec(query, mToR.MenuID, rID); err != nil {
-				t.Error(query)
-				t.Fatal(err)
+				query = sqlDb.Rebind(query)
+				if _, err := sqlDb.Exec(query, rel.MenuID, rID); err != nil {
+					t.Error(query)
+					t.Fatal(err)
+				}
 			}
 		}
 	}

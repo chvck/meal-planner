@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -41,10 +42,19 @@ func (mc menuController) MenuIndex(w http.ResponseWriter, r *http.Request) {
 	u := context.Get(r, "user").(model.User)
 	perPage := getURLParameterAsInt(r.URL, "perPage", defaultMenuPerPage)
 	offset := getURLParameterAsInt(r.URL, "offset", defaultMenuOffset)
-	menus, err := mc.service.All(perPage, offset, u.ID)
+	q := r.URL.Query()
+	includeRecipes := q.Get("includeRecipes")
+	var menuFunc func(int, int, int) ([]model.Menu, error)
+	if includeRecipes == "true" {
+		menuFunc = mc.service.AllWithRecipes
+	} else {
+		menuFunc = mc.service.All
+	}
+
+	menus, err := menuFunc(perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not retrieve menus", http.StatusNotFound)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 
@@ -56,21 +66,31 @@ func (mc menuController) MenuByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	u, ok := context.Get(r, "user").(model.User)
 	if !ok {
-		log.Println("Cannot extract user from request")
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		err := errors.New("Cannot extract user from request")
+		log.Println(err.Error())
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
 		return
 	}
 
-	menu, err := mc.service.GetByID(id, u.ID)
+	q := r.URL.Query()
+	includeRecipes := q.Get("includeRecipes")
+	var menuFunc func(int, int) (*model.Menu, error)
+	if includeRecipes == "true" {
+		menuFunc = mc.service.GetByIDWithRecipes
+	} else {
+		menuFunc = mc.service.GetByID
+	}
+
+	menu, err := menuFunc(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not retrieve menu", http.StatusNotFound)
+		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
 		return
 	}
 

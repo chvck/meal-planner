@@ -53,14 +53,14 @@
     },
     {
       "id": 3,
-      "name": "Chicken n ribs",
-      "user_id": 2
-    },
-    {
-      "id": 4,
       "name": "Rice n peas with jerk chicken",
       "description": "Secret is, they ain't peas",
       "user_id": 1
+    },
+    {
+      "id": 4,
+      "name": "Chicken n ribs",
+      "user_id": 2
     }
   ],
   "recipes": [
@@ -222,7 +222,7 @@
       "recipe_ids": [3, 4]
     },
     {
-      "menu_id": 3,
+      "menu_id": 4,
       "recipe_ids": [5, 6]
     }
   ],

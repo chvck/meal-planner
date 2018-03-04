@@ -80,6 +80,9 @@ func (ms menuService) AllWithRecipes(limit int, offset int, userID int) ([]model
 		recipes, ok := recipesByMenuID[m.ID]
 		if ok {
 			menus[i].Recipes = recipes
+		} else {
+			// make sure that this an empty array rather than a nil pointer
+			menus[i].Recipes = []model.Recipe{}
 		}
 	}
 

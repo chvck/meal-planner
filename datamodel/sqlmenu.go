@@ -47,7 +47,7 @@ func (sqlm SQLMenu) One(id int, userID int) (*model.Menu, error) {
 
 // AllWithLimit retrieves x menus starting from an offset
 func (sqlm SQLMenu) AllWithLimit(limit int, offset int, userID int) ([]model.Menu, error) {
-	menus := []model.Menu{}
+	menus := make([]model.Menu, 0)
 	rows, err := sqlm.dataStore.Query(`SELECT m.id, m.name, m.description, m.user_id
 		FROM menu m
 		WHERE m.user_id = ?
