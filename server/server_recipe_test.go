@@ -13,7 +13,10 @@ import (
 )
 
 func TestGetAllRecipes(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/"
 	token := createToken(&defaultUser, 1)
@@ -39,7 +42,10 @@ func TestGetAllRecipes(t *testing.T) {
 }
 
 func TestGetAllRecipesWhen2PerPageThen2(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/?perPage=2"
 	token := createToken(&defaultUser, 1)
@@ -65,7 +71,10 @@ func TestGetAllRecipesWhen2PerPageThen2(t *testing.T) {
 }
 
 func TestGetAllRecipesWhenOffsetThenOffset(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/?offset=3"
 	token := createToken(&defaultUser, 1)
@@ -91,7 +100,10 @@ func TestGetAllRecipesWhenOffsetThenOffset(t *testing.T) {
 }
 
 func TestGetAllRecipesWhenNoneThenEmptyArray(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/?offset=5"
 	token := createToken(&defaultUser, 1)
@@ -117,7 +129,7 @@ func TestGetAllRecipesWhenNoneThenEmptyArray(t *testing.T) {
 }
 
 func TestGetAllRecipesWhenNoAuthorizationThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/"
 	resp := sendRequest(t, "GET", url, "", nil)
@@ -127,7 +139,10 @@ func TestGetAllRecipesWhenNoAuthorizationThenError(t *testing.T) {
 }
 
 func TestGetOneRecipe(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/1"
 	token := createToken(&defaultUser, 1)
@@ -153,7 +168,10 @@ func TestGetOneRecipe(t *testing.T) {
 }
 
 func TestGetOneRecipeWhenBelongsToOtherUserThenNull(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/5"
 	token := createToken(&defaultUser, 1)
@@ -171,7 +189,7 @@ func TestGetOneRecipeWhenBelongsToOtherUserThenNull(t *testing.T) {
 }
 
 func TestGetOneRecipeWhenNoAuthorizationThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/1"
 	resp := sendRequest(t, "GET", url, "", nil)
@@ -181,7 +199,7 @@ func TestGetOneRecipeWhenNoAuthorizationThenError(t *testing.T) {
 }
 
 func TestGetOneRecipeWhenInvalidIDClientError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/somethingwrong"
 	token := createToken(&defaultUser, 1)
@@ -192,7 +210,10 @@ func TestGetOneRecipeWhenInvalidIDClientError(t *testing.T) {
 }
 
 func TestCreateRecipe(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/"
 	token := createToken(&defaultUser, 1)
@@ -256,7 +277,7 @@ func TestCreateRecipe(t *testing.T) {
 }
 
 func TestCreateRecipeWhenEmptyNameThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/"
 	token := createToken(&defaultUser, 1)
@@ -284,7 +305,7 @@ func TestCreateRecipeWhenEmptyNameThenError(t *testing.T) {
 }
 
 func TestCreateRecipeWhenEmptyInstructionsThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/"
 	token := createToken(&defaultUser, 1)
@@ -312,7 +333,7 @@ func TestCreateRecipeWhenEmptyInstructionsThenError(t *testing.T) {
 }
 
 func TestCreateRecipeWhenNoAuthorizationThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/"
 	resp := sendRequest(t, "POST", url, "", nil)
@@ -322,7 +343,10 @@ func TestCreateRecipeWhenNoAuthorizationThenError(t *testing.T) {
 }
 
 func TestUpdateRecipe(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/1"
 	token := createToken(&defaultUser, 1)
@@ -367,7 +391,7 @@ func TestUpdateRecipe(t *testing.T) {
 }
 
 func TestUpdateRecipeWhenEmptyNameThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/1"
 	token := createToken(&defaultUser, 1)
@@ -388,7 +412,7 @@ func TestUpdateRecipeWhenEmptyNameThenError(t *testing.T) {
 }
 
 func TestUpdateRecipeWhenEmptyInstructionsThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/1"
 	token := createToken(&defaultUser, 1)
@@ -409,7 +433,7 @@ func TestUpdateRecipeWhenEmptyInstructionsThenError(t *testing.T) {
 }
 
 func TestUpdateRecipeWhenNoAuthorizationThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/1"
 	resp := sendRequest(t, "PUT", url, "", nil)
@@ -419,7 +443,10 @@ func TestUpdateRecipeWhenNoAuthorizationThenError(t *testing.T) {
 }
 
 func TestDeleteRecipe(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
 
 	url := address + "recipe/1"
 	token := createToken(&defaultUser, 1)
@@ -436,7 +463,7 @@ func TestDeleteRecipe(t *testing.T) {
 }
 
 func TestDeleteRecipeWhenNoAuthorizationThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	url := address + "recipe/1"
 	resp := sendRequest(t, "DELETE", url, "", nil)

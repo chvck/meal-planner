@@ -52,6 +52,13 @@ type seed struct {
 	PlannerToMenus   plannerToMenus     `json:"planner_to_menus"`
 }
 
+type resetOptions struct {
+	recreateUsers    bool
+	recreateRecipes  bool
+	recreateMenus    bool
+	recreatePlanners bool
+}
+
 var sqlDb *sqlx.DB
 var fixtures seed
 var defaultUser model.User
@@ -77,8 +84,6 @@ func TestMain(m *testing.M) {
 }
 
 func TestUserAuthorizationWhenUserThenOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testuser/"
 	token := createToken(&defaultUser, 1)
 	resp := sendRequest(t, "GET", url, "Bearer "+token, nil)
@@ -88,8 +93,6 @@ func TestUserAuthorizationWhenUserThenOK(t *testing.T) {
 }
 
 func TestUserAuthorizationWhenNoAuthThenNotOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testuser/"
 	resp := sendRequest(t, "GET", url, "", nil)
 	defer resp.Body.Close()
@@ -98,8 +101,6 @@ func TestUserAuthorizationWhenNoAuthThenNotOK(t *testing.T) {
 }
 
 func TestUserAuthorizationWhenInvalidAuthThenNotOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testuser/"
 	resp := sendRequest(t, "GET", url, "Bearer token", nil)
 	defer resp.Body.Close()
@@ -108,8 +109,6 @@ func TestUserAuthorizationWhenInvalidAuthThenNotOK(t *testing.T) {
 }
 
 func TestUserAuthorizationWhen1PartTokenThenNotOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testuser/"
 	resp := sendRequest(t, "GET", url, "token", nil)
 	defer resp.Body.Close()
@@ -118,8 +117,6 @@ func TestUserAuthorizationWhen1PartTokenThenNotOK(t *testing.T) {
 }
 
 func TestUserAuthorizationWhenAdminThenOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testuser/"
 	token := createToken(&defaultUser, 2)
 	resp := sendRequest(t, "GET", url, "Bearer "+token, nil)
@@ -129,8 +126,6 @@ func TestUserAuthorizationWhenAdminThenOK(t *testing.T) {
 }
 
 func TestAdminAuthorizationWhenAdminThenOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testadmin/"
 	token := createToken(&defaultUser, 2)
 	resp := sendRequest(t, "GET", url, "Bearer "+token, nil)
@@ -140,8 +135,6 @@ func TestAdminAuthorizationWhenAdminThenOK(t *testing.T) {
 }
 
 func TestAdminAuthorizationWhenUserThenNotOK(t *testing.T) {
-	beforeEach(t)
-
 	url := address + "testadmin/"
 	token := createToken(&defaultUser, 1)
 	resp := sendRequest(t, "GET", url, "Bearer "+token, nil)
@@ -177,43 +170,66 @@ func loadSeeds() {
 	}
 }
 
-func beforeEach(t *testing.T) {
-	cleanDownModels(t)
-	createUsers(t, fixtures.Users)
-	createPlanners(t, fixtures.Planners)
-	createMenus(t, fixtures.Menus)
-	createRecipes(t, fixtures.Recipes)
-	createRelations(t, fixtures.PlannerToMenus, fixtures.PlannerToRecipes, fixtures.MenuToRecipes)
+func newResetOptions() *resetOptions {
+	return &resetOptions{
+		recreateMenus:    true,
+		recreatePlanners: true,
+		recreateRecipes:  true,
+		recreateUsers:    true,
+	}
 }
 
-func createRelations(t *testing.T, pToM plannerToMenus, pToR plannerToRecipes, mToR menuToRecipes) {
-	for _, mID := range pToM.MenuIDs {
-		query := `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
+func resetDatabase(t *testing.T, opts resetOptions) {
+	cleanDownModels(t)
+	if opts.recreateUsers {
+		createUsers(t, fixtures.Users)
+	}
+	if opts.recreatePlanners {
+		createPlanners(t, fixtures.Planners)
+	}
+	if opts.recreateMenus {
+		createMenus(t, fixtures.Menus)
+	}
+	if opts.recreateRecipes {
+		createRecipes(t, fixtures.Recipes)
+	}
+	createRelations(t, fixtures.PlannerToMenus, fixtures.PlannerToRecipes, fixtures.MenuToRecipes, opts)
+}
+
+func createRelations(t *testing.T, pToM plannerToMenus, pToR plannerToRecipes, mToR menuToRecipes, opts resetOptions) {
+	if opts.recreatePlanners && opts.recreateMenus {
+		for _, mID := range pToM.MenuIDs {
+			query := `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
 		VALUES (?, ?)`
-		query = sqlDb.Rebind(query)
-		if _, err := sqlDb.Exec(query, pToM.PlannerID, mID); err != nil {
-			t.Error(query)
-			t.Fatal(err)
+			query = sqlDb.Rebind(query)
+			if _, err := sqlDb.Exec(query, pToM.PlannerID, mID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
 		}
 	}
 
-	for _, rID := range pToR.RecipeIDs {
-		query := `INSERT INTO "planner_to_recipe" ("planner_id", "recipe_id")
+	if opts.recreatePlanners && opts.recreateRecipes {
+		for _, rID := range pToR.RecipeIDs {
+			query := `INSERT INTO "planner_to_recipe" ("planner_id", "recipe_id")
 		VALUES (?, ?)`
-		query = sqlDb.Rebind(query)
-		if _, err := sqlDb.Exec(query, pToR.PlannerID, rID); err != nil {
-			t.Error(query)
-			t.Fatal(err)
+			query = sqlDb.Rebind(query)
+			if _, err := sqlDb.Exec(query, pToR.PlannerID, rID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
 		}
 	}
 
-	for _, rID := range mToR.RecipeIDs {
-		query := `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
+	if opts.recreateRecipes && opts.recreateMenus {
+		for _, rID := range mToR.RecipeIDs {
+			query := `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
 		VALUES (?, ?)`
-		query = sqlDb.Rebind(query)
-		if _, err := sqlDb.Exec(query, mToR.MenuID, rID); err != nil {
-			t.Error(query)
-			t.Fatal(err)
+			query = sqlDb.Rebind(query)
+			if _, err := sqlDb.Exec(query, mToR.MenuID, rID); err != nil {
+				t.Error(query)
+				t.Fatal(err)
+			}
 		}
 	}
 }

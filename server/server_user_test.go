@@ -16,7 +16,11 @@ type loginCredentials struct {
 }
 
 func TestUserLogin(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	opts.recreateRecipes = false
+	resetDatabase(t, *opts)
 
 	user := fixtures.Users[0]
 
@@ -34,7 +38,11 @@ func TestUserLogin(t *testing.T) {
 }
 
 func TestUserLoginWhenUserDoesntExistThenError(t *testing.T) {
-	beforeEach(t)
+	opts := newResetOptions()
+	opts.recreateMenus = false
+	opts.recreatePlanners = false
+	opts.recreateRecipes = false
+	resetDatabase(t, *opts)
 
 	creds := loginCredentials{Username: "wrong user", Password: "wrong password"}
 	bytes, err := json.Marshal(creds)
@@ -50,7 +58,7 @@ func TestUserLoginWhenUserDoesntExistThenError(t *testing.T) {
 }
 
 func TestUserCreate(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	u := model.User{
 		Username: "user create",
@@ -102,7 +110,7 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserCreateWhenNoUsernameThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	u := model.User{
 		Username: "",
@@ -127,7 +135,7 @@ func TestUserCreateWhenNoUsernameThenError(t *testing.T) {
 }
 
 func TestUserCreateWhenNoEmailThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	u := model.User{
 		Username: "test name",
@@ -152,7 +160,7 @@ func TestUserCreateWhenNoEmailThenError(t *testing.T) {
 }
 
 func TestUserCreateWhenPasswordLessThan8CharsThenError(t *testing.T) {
-	beforeEach(t)
+	cleanDownModels(t)
 
 	u := model.User{
 		Username: "test name",
