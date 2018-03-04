@@ -12,6 +12,7 @@ type Info struct {
 	HTTPPort  int    `json:"httpPort"`
 	HTTPSPort int    `json:"httpsPort"`
 	Hostname  string `json:"hostname"`
+	AuthKey   string `json:"authKey"`
 }
 
 // ParseJSON unmarshals bytes to structs

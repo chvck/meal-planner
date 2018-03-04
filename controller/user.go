@@ -20,11 +20,12 @@ type UserController interface {
 
 type userController struct {
 	service service.UserService
+	authKey string
 }
 
 // NewUserController creates a new user controller
-func NewUserController(service service.UserService) UserController {
-	return &userController{service: service}
+func NewUserController(service service.UserService, authKey string) UserController {
+	return &userController{service: service, authKey: authKey}
 }
 
 type userWithPassword struct {
@@ -57,7 +58,7 @@ func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := createToken(u)
+	t, err := createToken(u, uc.authKey)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
@@ -104,7 +105,7 @@ func (uc userController) UserCreate(w http.ResponseWriter, r *http.Request) {
 	JSONResponseWithCode(created, w, 201)
 }
 
-func createToken(user *model.User) (*jwtToken, error) {
+func createToken(user *model.User, key string) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username":  user.Username,
 		"email":     user.Email,
@@ -112,7 +113,7 @@ func createToken(user *model.User) (*jwtToken, error) {
 		"lastLogin": user.LastLogin,
 		"level":     model.LevelUser,
 	})
-	tokenString, err := token.SignedString([]byte("secret"))
+	tokenString, err := token.SignedString([]byte(key))
 	if err != nil {
 		return nil, err
 	}

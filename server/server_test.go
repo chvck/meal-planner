@@ -63,6 +63,7 @@ var sqlDb *sqlx.DB
 var fixtures seed
 var defaultUser model.User
 var address string
+var authKey string
 
 func TestMain(m *testing.M) {
 	cfg := loadConfig("../config.test.json")
@@ -73,6 +74,7 @@ func TestMain(m *testing.M) {
 	loadSeeds()
 	defaultUser = fixtures.Users[0].User
 	address = fmt.Sprintf("http://%v:%v/", cfg.Hostname, cfg.HTTPPort)
+	authKey = cfg.AuthKey
 	srv, err := server.Run(cfg)
 	if err != nil {
 		panic(err)
@@ -375,7 +377,7 @@ func createToken(user *model.User, level int) string {
 		"lastLogin": user.LastLogin,
 		"level":     level,
 	})
-	tokenString, err := token.SignedString([]byte("secret"))
+	tokenString, err := token.SignedString([]byte(authKey))
 	if err != nil {
 		panic(err)
 	}

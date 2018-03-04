@@ -32,12 +32,12 @@ func Run(cfg *config.Info) (*http.Server, error) {
 	// plannerService := service.NewPlannerService(plannerDataModel, menuDataModel, recipeDataModel)
 
 	menuController := controller.NewMenuController(menuService)
-	userController := controller.NewUserController(userService)
+	userController := controller.NewUserController(userService, cfg.AuthKey)
 	recipeController := controller.NewRecipeController(recipeService)
 
 	handler := NewHandler(menuController, recipeController, userController)
 
-	r := routes(handler)
+	r := routes(handler, cfg.AuthKey)
 
 	address := fmt.Sprintf("%v:%v", cfg.Hostname, cfg.HTTPPort)
 

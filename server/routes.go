@@ -16,7 +16,10 @@ type exception struct {
 	Message string `json:"message"`
 }
 
-func routes(handler *Handler) *mux.Router {
+var authKey string
+
+func routes(handler *Handler, key string) *mux.Router {
+	authKey = key
 	router := mux.NewRouter()
 
 	router.HandleFunc("/recipe/", validateMiddleware(handler.RecipeIndex, model.LevelUser)).Methods("GET")
@@ -86,5 +89,5 @@ func parseToken(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, fmt.Errorf("there was an error")
 	}
-	return []byte("secret"), nil
+	return []byte(authKey), nil
 }
