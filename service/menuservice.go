@@ -12,7 +12,7 @@ type MenuService interface {
 	All(limit int, offset int, userID int) ([]model.Menu, error)
 	AllWithRecipes(limit int, offset int, userID int) ([]model.Menu, error)
 	Create(m model.Menu, userID int) (*model.Menu, error)
-	Update(m model.Menu, id int, userID int) error
+	Update(m model.Menu, id int, userID int) (*model.Menu, error)
 	Delete(id int, userID int) error
 }
 
@@ -100,8 +100,13 @@ func (ms menuService) Create(m model.Menu, userID int) (*model.Menu, error) {
 }
 
 // Update updates a menu
-func (ms menuService) Update(m model.Menu, id int, userID int) error {
-	return ms.mdm.Update(m, id, userID)
+func (ms menuService) Update(m model.Menu, id int, userID int) (*model.Menu, error) {
+	err := ms.mdm.Update(m, id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return ms.mdm.One(id, userID)
 }
 
 // Delete deletes a menu

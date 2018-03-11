@@ -353,6 +353,90 @@ func TestCreateMenuWhenEmptyNameThenError(t *testing.T) {
 	assert.Equal(t, "name cannot be empty", msgErr.Errors[0])
 }
 
+func TestCreateMenuWhenNoAuthorizationThenError(t *testing.T) {
+	cleanDownModels(t)
+
+	url := address + "menu/"
+	resp := sendRequest(t, "POST", url, "", nil)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 401, resp.StatusCode)
+}
+
+func TestUpdateMenu(t *testing.T) {
+	opts := newResetOptions()
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
+
+	url := address + "menu/1"
+	token := createToken(&defaultUser, 1)
+
+	m := fixtures.Menus[1]
+	m.Name = "updated name"
+	m.Description = null.StringFrom("updated description")
+
+	bytes, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := sendRequest(t, "PUT", url, "Bearer "+token, bytes)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var actual model.Menu
+	err = json.Unmarshal(bodyBytes, &actual)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	menusEqual(t, m, actual)
+
+	dbMenu := menuFromDb(t, actual.ID)
+
+	menusEqual(t, m, *dbMenu)
+}
+
+func TestUpdateMenuWhenNoNameThenError(t *testing.T) {
+	opts := newResetOptions()
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
+
+	url := address + "menu/1"
+	token := createToken(&defaultUser, 1)
+
+	m := fixtures.Menus[1]
+	m.Name = ""
+
+	bytes, err := json.Marshal(m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := sendRequest(t, "PUT", url, "Bearer "+token, bytes)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 400, resp.StatusCode)
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var msgErr controller.JSONError
+	json.Unmarshal(bodyBytes, &msgErr)
+
+	assert.NotNil(t, msgErr.Errors)
+	assert.Len(t, msgErr.Errors, 1)
+	assert.Equal(t, "name cannot be empty", msgErr.Errors[0])
+}
+
 func recipesFromDbForMenuID(t *testing.T, id int) []model.Recipe {
 	query := `SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 	FROM recipe r

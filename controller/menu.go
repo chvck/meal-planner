@@ -136,7 +136,7 @@ func (mc menuController) MenuUpdate(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
@@ -144,21 +144,29 @@ func (mc menuController) MenuUpdate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid menu", http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(body, &m); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid menu", http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
-	err = mc.service.Update(m, id, u.ID)
-	if err != nil {
-		log.Println(err.Error())
-		http.Error(w, "Could not create menu", http.StatusInternalServerError)
+	errs := m.Validate()
+	if len(errs) != 0 {
+		JSONResponseWithCode(NewJSONErrors(errs), w, http.StatusBadRequest)
 		return
 	}
+
+	updated, err := mc.service.Update(m, id, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
+		return
+	}
+
+	JSONResponseWithCode(updated, w, 200)
 }
 
 // MenuDelete is the HTTP handler for deleting a menu
