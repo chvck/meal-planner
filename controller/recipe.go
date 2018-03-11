@@ -44,7 +44,7 @@ func (rc recipeController) RecipeIndex(w http.ResponseWriter, r *http.Request) {
 	recipes, err := rc.service.All(perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -58,14 +58,14 @@ func (rc recipeController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
 	recipe, err := rc.service.GetByIDWithIngredients(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -77,20 +77,20 @@ func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
 	var re model.Recipe
 	if err := json.Unmarshal(body, &re); err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
 	errs := re.Validate()
 	if len(errs) != 0 {
-		JSONResponseWithCode(JSONError{Errors: errs}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONErrors(errs), w, http.StatusBadRequest)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (rc recipeController) RecipeCreate(w http.ResponseWriter, r *http.Request) 
 	created, err := rc.service.Create(re, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -112,7 +112,7 @@ func (rc recipeController) RecipeUpdate(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
@@ -120,25 +120,25 @@ func (rc recipeController) RecipeUpdate(w http.ResponseWriter, r *http.Request) 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(body, &re); err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
 	errs := re.Validate()
 	if len(errs) != 0 {
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONErrors(errs), w, http.StatusBadRequest)
 		return
 	}
 
 	updated, err := rc.service.Update(re, id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -153,14 +153,14 @@ func (rc recipeController) RecipeDelete(w http.ResponseWriter, r *http.Request) 
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
 	err = rc.service.Delete(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 

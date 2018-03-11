@@ -12,7 +12,7 @@ The migrations are generic in format so should run with any migration runner tha
 
 #### Migrate
 
-To use the Migrate CLI with Postgres first install Migrate 
+To use the Migrate CLI with Postgres first install Migrate.
 
 ```
 $ go get -u -d github.com/mattes/migrate/cli github.com/lib/pq
@@ -26,3 +26,10 @@ migrate -database postgres://localhost:5432/meals -source file://migrations/ up
 
 ```
 
+## Tests
+
+Tests are not unit tests and are not exhaustive. They are designed to run end to end; sending a HTTP request
+and then testing the HTTP responses and what's in the database. The tests are designed to give a decent level of confidence
+that a change will not break the system but things like error handling in all circumstances are not tested. The general principle
+behind this is to try to be dogmatic and actually create something whilst having a good idea of what a change is going to do without
+manual testing.

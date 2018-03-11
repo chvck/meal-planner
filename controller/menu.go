@@ -54,7 +54,7 @@ func (mc menuController) MenuIndex(w http.ResponseWriter, r *http.Request) {
 	menus, err := menuFunc(perPage, offset, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -68,13 +68,13 @@ func (mc menuController) MenuByID(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		err := errors.New("Cannot extract user from request")
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 	id, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 
@@ -90,7 +90,7 @@ func (mc menuController) MenuByID(w http.ResponseWriter, r *http.Request) {
 	menu, err := menuFunc(id, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		JSONResponseWithCode(JSONError{Error: err}, w, http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
@@ -103,12 +103,18 @@ func (mc menuController) MenuCreate(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid menu", http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
 	}
 	if err := json.Unmarshal(body, &m); err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Invalid menu", http.StatusBadRequest)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
+		return
+	}
+
+	errs := m.Validate()
+	if len(errs) != 0 {
+		JSONResponseWithCode(NewJSONErrors(errs), w, http.StatusBadRequest)
 		return
 	}
 
@@ -116,11 +122,11 @@ func (mc menuController) MenuCreate(w http.ResponseWriter, r *http.Request) {
 	created, err := mc.service.Create(m, u.ID)
 	if err != nil {
 		log.Println(err.Error())
-		http.Error(w, "Could not create menu", http.StatusInternalServerError)
+		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
 		return
 	}
 
-	JSONResponse(created, w)
+	JSONResponseWithCode(created, w, 201)
 }
 
 // RecipeUpdate is the HTTP handler for updating a recipe
