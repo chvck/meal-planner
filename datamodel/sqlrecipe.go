@@ -310,6 +310,17 @@ func (sqlr SQLRecipe) Create(r model.Recipe, userID int) (*int, error) {
 
 // Update updates the specific recipe
 func (sqlr SQLRecipe) Update(r model.Recipe, id int, userID int) error {
+	row := sqlr.dataStore.QueryOne("SELECT user_id from recipe where id = ?;", id)
+
+	var rUserID int
+	if err := row.Scan(&rUserID); err != nil {
+		return err
+	}
+
+	if rUserID != userID {
+		return errors.New("cannot update recipe, unauthorized")
+	}
+
 	tx, err := sqlr.dataStore.NewTransaction()
 	if err != nil {
 		return err

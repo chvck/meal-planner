@@ -432,6 +432,27 @@ func TestUpdateRecipeWhenEmptyInstructionsThenError(t *testing.T) {
 	assert.Equal(t, 400, resp.StatusCode)
 }
 
+func TestUpdateRecipeWhenBelongsToOtherUserThenError(t *testing.T) {
+	cleanDownModels(t)
+
+	url := address + "recipe/4"
+	token := createToken(&defaultUser, 1)
+
+	r := fixtures.Recipes[0]
+
+	r.Instructions = "update instructions"
+
+	bytes, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resp := sendRequest(t, "PUT", url, "Bearer "+token, bytes)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 500, resp.StatusCode)
+}
+
 func TestUpdateRecipeWhenNoAuthorizationThenError(t *testing.T) {
 	cleanDownModels(t)
 
