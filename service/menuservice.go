@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/chvck/meal-planner/datamodel"
 	"github.com/chvck/meal-planner/model"
 )
@@ -14,6 +16,8 @@ type MenuService interface {
 	Create(m model.Menu, userID int) (*model.Menu, error)
 	Update(m model.Menu, id int, userID int) (*model.Menu, error)
 	Delete(id int, userID int) error
+	AddRecipe(menuID int, recipeID int, userID int) error
+	RemoveRecipe(menuID int, recipeID int, userID int) error
 }
 
 type menuService struct {
@@ -112,4 +116,50 @@ func (ms menuService) Update(m model.Menu, id int, userID int) (*model.Menu, err
 // Delete deletes a menu
 func (ms menuService) Delete(id int, userID int) error {
 	return ms.mdm.Delete(id, userID)
+}
+
+// AddRecipe adds a recipe to a menu
+func (ms menuService) AddRecipe(menuID int, recipeID int, userID int) error {
+	m, err := ms.mdm.One(menuID, userID)
+	if err != nil {
+		return err
+	}
+
+	if m == nil {
+		return errors.New("menu could not be found")
+	}
+
+	r, err := ms.rdm.One(recipeID, userID)
+	if err != nil {
+		return err
+	}
+
+	if r == nil {
+		return errors.New("recipe could not be found")
+	}
+
+	return ms.mdm.AddRecipe(menuID, recipeID)
+}
+
+// RemoveRecipe removes a recipe from a menu
+func (ms menuService) RemoveRecipe(menuID int, recipeID int, userID int) error {
+	m, err := ms.mdm.One(menuID, userID)
+	if err != nil {
+		return err
+	}
+
+	if m == nil {
+		return errors.New("menu could not be found")
+	}
+
+	r, err := ms.rdm.One(recipeID, userID)
+	if err != nil {
+		return err
+	}
+
+	if r == nil {
+		return errors.New("recipe could not be found")
+	}
+
+	return ms.mdm.RemoveRecipe(menuID, recipeID)
 }

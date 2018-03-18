@@ -119,10 +119,6 @@ func (sqlm SQLMenu) ForPlanners(ids ...interface{}) (map[int][]model.Menu, error
 
 // Create creates the specific menu
 func (sqlm SQLMenu) Create(m model.Menu, userID int) (*int, error) {
-	// if err := validateRecipe(r); err != nil {
-	// 	return nil, err
-	// }
-
 	query := `INSERT INTO "menu" (name, description, user_id) VALUES (?, ?, ?) RETURNING id;`
 
 	row := sqlm.dataStore.QueryOne(
@@ -139,10 +135,6 @@ func (sqlm SQLMenu) Create(m model.Menu, userID int) (*int, error) {
 
 // Update updates the specific menu
 func (sqlm SQLMenu) Update(m model.Menu, id int, userID int) error {
-	// if err := validateRecipe(r); err != nil {
-	// 	return err
-	// }
-
 	if _, err := sqlm.dataStore.Exec(
 		`UPDATE "menu" SET name = ?, description = ? WHERE id = ? and user_id = ?;`,
 		m.Name, m.Description, id, userID); err != nil {
@@ -163,6 +155,24 @@ func (sqlm SQLMenu) Delete(id int, userID int) error {
 
 	if rowsAccepted == 0 {
 		return errors.New("No menu to delete")
+	}
+
+	return nil
+}
+
+// AddRecipe adds a recipe to the menu
+func (sqlm SQLMenu) AddRecipe(menuID int, recipeID int) error {
+	if _, err := sqlm.dataStore.Exec(`INSERT INTO "menu_to_recipe" (menu_id, recipe_id) VALUES (?, ?);`, menuID, recipeID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// RemoveRecipe removes a recipe from the menu
+func (sqlm SQLMenu) RemoveRecipe(menuID int, recipeID int) error {
+	if _, err := sqlm.dataStore.Exec(`DELETE FROM "menu_to_recipe" WHERE menu_id=? AND recipe_id=?;`, menuID, recipeID); err != nil {
+		return err
 	}
 
 	return nil

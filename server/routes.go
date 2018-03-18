@@ -33,6 +33,8 @@ func routes(handler *Handler, key string) *mux.Router {
 	router.HandleFunc("/menu/", validateMiddleware(handler.MenuCreate, model.LevelUser)).Methods("POST")
 	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuUpdate, model.LevelUser)).Methods("PUT")
 	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuDelete, model.LevelUser)).Methods("DELETE")
+	router.HandleFunc("/menu/{mId}/recipe/{rId}", validateMiddleware(handler.MenuAddRecipe, model.LevelUser)).Methods("PUT")
+	router.HandleFunc("/menu/{mId}/recipe/{rId}", validateMiddleware(handler.MenuRemoveRecipe, model.LevelUser)).Methods("DELETE")
 
 	// check the env and only add these in test in future
 	router.HandleFunc("/testuser/", validateMiddleware(test, model.LevelUser)).Methods("GET")

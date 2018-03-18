@@ -21,6 +21,8 @@ type MenuController interface {
 	MenuCreate(w http.ResponseWriter, r *http.Request)
 	MenuUpdate(w http.ResponseWriter, r *http.Request)
 	MenuDelete(w http.ResponseWriter, r *http.Request)
+	MenuAddRecipe(w http.ResponseWriter, r *http.Request)
+	MenuRemoveRecipe(w http.ResponseWriter, r *http.Request)
 }
 
 type menuController struct {
@@ -185,6 +187,60 @@ func (mc menuController) MenuDelete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(w, "Could not delete menu", http.StatusInternalServerError)
+		return
+	}
+}
+
+// MenuAddRecipe is the HTTP handler for adding a recipe to a menu
+func (mc menuController) MenuAddRecipe(w http.ResponseWriter, r *http.Request) {
+	u := context.Get(r, "user").(model.User)
+	vars := mux.Vars(r)
+
+	mID, err := strconv.Atoi(vars["mId"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid menu ID", http.StatusBadRequest)
+		return
+	}
+
+	rID, err := strconv.Atoi(vars["rId"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe ID", http.StatusBadRequest)
+		return
+	}
+
+	err = mc.service.AddRecipe(mID, rID, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Could not add recipe to menu", http.StatusInternalServerError)
+		return
+	}
+}
+
+// MenuRemoveRecipe is the HTTP handler for removing a recipe from a menu
+func (mc menuController) MenuRemoveRecipe(w http.ResponseWriter, r *http.Request) {
+	u := context.Get(r, "user").(model.User)
+	vars := mux.Vars(r)
+
+	mID, err := strconv.Atoi(vars["mId"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid menu ID", http.StatusBadRequest)
+		return
+	}
+
+	rID, err := strconv.Atoi(vars["rId"])
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Invalid recipe ID", http.StatusBadRequest)
+		return
+	}
+
+	err = mc.service.RemoveRecipe(mID, rID, u.ID)
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Could not add recipe to menu", http.StatusInternalServerError)
 		return
 	}
 }

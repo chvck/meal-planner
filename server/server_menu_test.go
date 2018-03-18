@@ -13,6 +13,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+type MenuRecipe struct {
+	MenuID   int `db:"menu_id"`
+	RecipeID int `db:"recipe_id"`
+}
+
 func TestGetAllMenus(t *testing.T) {
 	opts := newResetOptions()
 	opts.recreatePlanners = false
@@ -437,6 +442,38 @@ func TestUpdateMenuWhenNoNameThenError(t *testing.T) {
 	assert.Equal(t, "name cannot be empty", msgErr.Errors[0])
 }
 
+func TestAddRecipeMenu(t *testing.T) {
+	opts := newResetOptions()
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
+
+	url := address + "menu/1/recipe/3"
+	token := createToken(&defaultUser, 1)
+
+	resp := sendRequest(t, "PUT", url, "Bearer "+token, nil)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+
+	assert.Len(t, menuRecipesForMenu(t, 1), 3)
+}
+
+func TestRemoveRecipeMenu(t *testing.T) {
+	opts := newResetOptions()
+	opts.recreatePlanners = false
+	resetDatabase(t, *opts)
+
+	url := address + "menu/1/recipe/1"
+	token := createToken(&defaultUser, 1)
+
+	resp := sendRequest(t, "DELETE", url, "Bearer "+token, nil)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+
+	assert.Len(t, menuRecipesForMenu(t, 1), 1)
+}
+
 func recipesFromDbForMenuID(t *testing.T, id int) []model.Recipe {
 	query := `SELECT r.id, r.name, r.instructions, r.description, r.yield, r.prep_time, r.cook_time, r.user_id
 	FROM recipe r
@@ -490,4 +527,26 @@ func menusEqual(t *testing.T, expected model.Menu, actual model.Menu) {
 	assert.Equal(t, expected.Name, actual.Name)
 	assert.Equal(t, expected.Description, actual.Description)
 	assert.Equal(t, expected.UserID, actual.UserID)
+}
+
+func menuRecipesForMenu(t *testing.T, menuID int) []MenuRecipe {
+	query := `SELECT mr.menu_id, mr.recipe_id FROM menu_to_recipe mr WHERE mr.menu_id=?`
+	query = sqlDb.Rebind(query)
+	rows, err := sqlDb.Query(query, "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	menuRecipes := []MenuRecipe{}
+	defer rows.Close()
+	for rows.Next() {
+		var menuRecipe MenuRecipe
+		if err := rows.Scan(&menuRecipe.MenuID, &menuRecipe.RecipeID); err != nil {
+			t.Fatal(err)
+		}
+
+		menuRecipes = append(menuRecipes, menuRecipe)
+	}
+
+	return menuRecipes
 }
