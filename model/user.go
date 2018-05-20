@@ -2,18 +2,16 @@ package model
 
 import (
 	"errors"
-
-	"gopkg.in/guregu/null.v3"
 )
 
 // User is the model for the user table
 type User struct {
-	ID        int      `db:"id" json:"id"`
-	Username  string   `db:"username" json:"username"`
-	Email     string   `db:"email" json:"email"`
-	CreatedAt int      `db:"created_at" json:"createdAt"`
-	UpdatedAt int      `db:"updated_at" json:"updatedAt"`
-	LastLogin null.Int `db:"last_login" json:"lastLogin"`
+	ID        int    `json:"id,omitempty"`
+	Username  string `json:"username,omitempty"`
+	Email     string `json:"email,omitempty"`
+	CreatedAt int    `json:"createdAt,omitempty"`
+	UpdatedAt int    `json:"updatedAt,omitempty"`
+	LastLogin int    `json:"lastLogin,omitempty"`
 }
 
 // Levels are for user access levels
@@ -24,7 +22,7 @@ const (
 
 // Validate checks that the user is valid
 func (u User) Validate() []error {
-	errs := []error{}
+	var errs []error
 	if u.Username == "" {
 		errs = append(errs, errors.New("username cannot be empty"))
 	}

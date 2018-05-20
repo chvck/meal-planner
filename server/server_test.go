@@ -27,16 +27,6 @@ type plannerToRecipes struct {
 	RecipeIDs []int `json:"recipe_ids"`
 }
 
-type menuToRecipes struct {
-	MenuID    int   `json:"menu_id"`
-	RecipeIDs []int `json:"recipe_ids"`
-}
-
-type plannerToMenus struct {
-	PlannerID int   `json:"planner_id"`
-	MenuIDs   []int `json:"menu_ids"`
-}
-
 type userWithPassword struct {
 	model.User
 	Password string `json:"password"`
@@ -45,17 +35,13 @@ type userWithPassword struct {
 type seed struct {
 	Users            []userWithPassword `json:"users"`
 	Planners         []model.Planner    `json:"planners"`
-	Menus            []model.Menu       `json:"menus"`
 	Recipes          []model.Recipe     `json:"recipes"`
 	PlannerToRecipes []plannerToRecipes `json:"planner_to_recipe"`
-	MenuToRecipes    []menuToRecipes    `json:"menu_to_recipe"`
-	PlannerToMenus   []plannerToMenus   `json:"planner_to_menu"`
 }
 
 type resetOptions struct {
 	recreateUsers    bool
 	recreateRecipes  bool
-	recreateMenus    bool
 	recreatePlanners bool
 }
 
@@ -166,15 +152,14 @@ func sendRequest(t *testing.T, method string, url string, tok string, data []byt
 }
 
 func loadSeeds() {
-	bytes := loadFixture("testdata/seed.json")
-	if err := json.Unmarshal(bytes, &fixtures); err != nil {
+	b := loadFixture("testdata/seed.json")
+	if err := json.Unmarshal(b, &fixtures); err != nil {
 		panic(err)
 	}
 }
 
 func newResetOptions() *resetOptions {
 	return &resetOptions{
-		recreateMenus:    true,
 		recreatePlanners: true,
 		recreateRecipes:  true,
 		recreateUsers:    true,
@@ -189,30 +174,13 @@ func resetDatabase(t *testing.T, opts resetOptions) {
 	if opts.recreatePlanners {
 		createPlanners(t, fixtures.Planners)
 	}
-	if opts.recreateMenus {
-		createMenus(t, fixtures.Menus)
-	}
 	if opts.recreateRecipes {
 		createRecipes(t, fixtures.Recipes)
 	}
-	createRelations(t, fixtures.PlannerToMenus, fixtures.PlannerToRecipes, fixtures.MenuToRecipes, opts)
+	createRelations(t, fixtures.PlannerToRecipes, opts)
 }
 
-func createRelations(t *testing.T, pToM []plannerToMenus, pToR []plannerToRecipes, mToR []menuToRecipes, opts resetOptions) {
-	if opts.recreatePlanners && opts.recreateMenus {
-		for _, rel := range pToM {
-			for _, mID := range rel.MenuIDs {
-				query := `INSERT INTO "planner_to_menu" ("planner_id", "menu_id")
-			VALUES (?, ?)`
-				query = sqlDb.Rebind(query)
-				if _, err := sqlDb.Exec(query, rel.PlannerID, mID); err != nil {
-					t.Error(query)
-					t.Fatal(err)
-				}
-			}
-		}
-	}
-
+func createRelations(t *testing.T, pToR []plannerToRecipes, opts resetOptions) {
 	if opts.recreatePlanners && opts.recreateRecipes {
 		for _, rel := range pToR {
 			for _, rID := range rel.RecipeIDs {
@@ -220,20 +188,6 @@ func createRelations(t *testing.T, pToM []plannerToMenus, pToR []plannerToRecipe
 		VALUES (?, ?)`
 				query = sqlDb.Rebind(query)
 				if _, err := sqlDb.Exec(query, rel.PlannerID, rID); err != nil {
-					t.Error(query)
-					t.Fatal(err)
-				}
-			}
-		}
-	}
-
-	if opts.recreateRecipes && opts.recreateMenus {
-		for _, rel := range mToR {
-			for _, rID := range rel.RecipeIDs {
-				query := `INSERT INTO "menu_to_recipe" ("menu_id", "recipe_id")
-		VALUES (?, ?)`
-				query = sqlDb.Rebind(query)
-				if _, err := sqlDb.Exec(query, rel.MenuID, rID); err != nil {
 					t.Error(query)
 					t.Fatal(err)
 				}
@@ -261,18 +215,6 @@ func createRecipes(t *testing.T, recipes []model.Recipe) {
 				t.Error(query)
 				t.Fatal(err)
 			}
-		}
-	}
-}
-
-func createMenus(t *testing.T, menus []model.Menu) {
-	for _, m := range menus {
-		query := `INSERT INTO "menu" (id, "name", "description", "user_id")
-		VALUES (?, ?, ?, ?)`
-		query = sqlDb.Rebind(query)
-		if _, err := sqlDb.Exec(query, m.ID, m.Name, m.Description, m.UserID); err != nil {
-			t.Error(query)
-			t.Fatal(err)
 		}
 	}
 }
@@ -312,9 +254,6 @@ func cleanDownModels(t *testing.T) {
 	if _, err := sqlDb.Exec(`DELETE FROM "recipe"`); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := sqlDb.Exec(`DELETE FROM "menu"`); err != nil {
-		t.Fatal(err)
-	}
 	if _, err := sqlDb.Exec(`DELETE FROM "planner"`); err != nil {
 		t.Fatal(err)
 	}
@@ -324,12 +263,12 @@ func cleanDownModels(t *testing.T) {
 }
 
 func loadFixture(path string) []byte {
-	bytes, err := ioutil.ReadFile(path)
+	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	return bytes
+	return b
 }
 
 func loadConfig(path string) *config.Info {
@@ -367,7 +306,7 @@ func migrations(cfg *config.Info) {
 	defer m.Close()
 
 	if err := m.Down(); err != nil {
-		panic(err)
+		fmt.Println("Couldn't perform migrations down")
 	}
 
 	if err := m.Up(); err != nil {

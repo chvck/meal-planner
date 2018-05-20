@@ -8,42 +8,25 @@ import (
 	"net/http"
 
 	"github.com/chvck/meal-planner/model"
-	"github.com/chvck/meal-planner/service"
 	"github.com/dgrijalva/jwt-go"
 )
 
-// UserController is the interface for a controller than handles user endpoints
-type UserController interface {
-	UserLogin(w http.ResponseWriter, r *http.Request)
-	UserCreate(w http.ResponseWriter, r *http.Request)
-}
-
-type userController struct {
-	service service.UserService
-	authKey string
-}
-
-// NewUserController creates a new user controller
-func NewUserController(service service.UserService, authKey string) UserController {
-	return &userController{service: service, authKey: authKey}
-}
-
 type userWithPassword struct {
 	model.User
-	Password string `json:"password"`
+	Password string `json:"password,omitzero"`
 }
 
 type loginCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username,omitzero"`
+	Password string `json:"password,omitzero"`
 }
 
 type jwtToken struct {
-	Token string `json:"token"`
+	Token string `json:"token,omitzero"`
 }
 
 // UserLogin is the HTTP handler for logging as user into the system
-func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
+func (sc StandardController) UserLogin(w http.ResponseWriter, r *http.Request) {
 	var creds loginCredentials
 	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
 		log.Println(err.Error())
@@ -51,14 +34,14 @@ func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := uc.service.ValidatePassword(creds.Username, []byte(creds.Password))
+	u := sc.ds.UserValidatePassword(creds.Username, []byte(creds.Password))
 	if u == nil {
 		err := errors.New("invalid user credentials provided")
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusUnauthorized)
 		return
 	}
 
-	t, err := createToken(u, uc.authKey)
+	t, err := createToken(u, sc.authKey)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -69,7 +52,7 @@ func (uc userController) UserLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 // UserCreate is the HTTP handler for creating a user
-func (uc userController) UserCreate(w http.ResponseWriter, r *http.Request) {
+func (sc StandardController) UserCreate(w http.ResponseWriter, r *http.Request) {
 	var u userWithPassword
 
 	body, err := ioutil.ReadAll(r.Body)
@@ -95,7 +78,7 @@ func (uc userController) UserCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	created, err := uc.service.Create(u.User, []byte(u.Password))
+	created, err := sc.ds.UserCreate(u.User, []byte(u.Password))
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)

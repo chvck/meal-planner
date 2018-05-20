@@ -28,14 +28,6 @@ func routes(handler *Handler, key string) *mux.Router {
 	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeUpdate, model.LevelUser)).Methods("PUT")
 	router.HandleFunc("/recipe/{id}", validateMiddleware(handler.RecipeDelete, model.LevelUser)).Methods("DELETE")
 
-	router.HandleFunc("/menu/", validateMiddleware(handler.MenuIndex, model.LevelUser)).Methods("GET")
-	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuByID, model.LevelUser)).Methods("GET")
-	router.HandleFunc("/menu/", validateMiddleware(handler.MenuCreate, model.LevelUser)).Methods("POST")
-	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuUpdate, model.LevelUser)).Methods("PUT")
-	router.HandleFunc("/menu/{id}", validateMiddleware(handler.MenuDelete, model.LevelUser)).Methods("DELETE")
-	router.HandleFunc("/menu/{mId}/recipe/{rId}", validateMiddleware(handler.MenuAddRecipe, model.LevelUser)).Methods("PUT")
-	router.HandleFunc("/menu/{mId}/recipe/{rId}", validateMiddleware(handler.MenuRemoveRecipe, model.LevelUser)).Methods("DELETE")
-
 	// check the env and only add these in test in future
 	router.HandleFunc("/testuser/", validateMiddleware(test, model.LevelUser)).Methods("GET")
 	router.HandleFunc("/testadmin/", validateMiddleware(test, model.LevelAdmin)).Methods("GET")

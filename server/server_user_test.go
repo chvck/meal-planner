@@ -8,6 +8,7 @@ import (
 	"github.com/chvck/meal-planner/model"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/guregu/null.v3"
 )
 
 type loginCredentials struct {
@@ -17,7 +18,6 @@ type loginCredentials struct {
 
 func TestUserLogin(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	opts.recreateRecipes = false
 	resetDatabase(t, *opts)
@@ -39,7 +39,6 @@ func TestUserLogin(t *testing.T) {
 
 func TestUserLoginWhenUserDoesntExistThenError(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	opts.recreateRecipes = false
 	resetDatabase(t, *opts)
@@ -201,8 +200,13 @@ func userFromDb(t *testing.T, id int) *userWithPassword {
 	row := sqlDb.QueryRow(query, id)
 
 	var u userWithPassword
-	if err := row.Scan(&u.ID, &u.Username, &u.Email, &u.Password, &u.CreatedAt, &u.UpdatedAt, &u.LastLogin); err != nil {
+	var lastLogin null.Int
+	if err := row.Scan(&u.ID, &u.Username, &u.Email, &u.Password, &u.CreatedAt, &u.UpdatedAt, &lastLogin); err != nil {
 		t.Fatal(err)
+	}
+
+	if lastLogin.Valid {
+		u.LastLogin = int(lastLogin.Int64)
 	}
 
 	return &u

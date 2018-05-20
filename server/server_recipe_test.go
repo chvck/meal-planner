@@ -9,12 +9,11 @@ import (
 	"github.com/chvck/meal-planner/model"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
-	null "gopkg.in/guregu/null.v3"
+	"gopkg.in/guregu/null.v3"
 )
 
 func TestGetAllRecipes(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -43,7 +42,6 @@ func TestGetAllRecipes(t *testing.T) {
 
 func TestGetAllRecipesWhen2PerPageThen2(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -72,7 +70,6 @@ func TestGetAllRecipesWhen2PerPageThen2(t *testing.T) {
 
 func TestGetAllRecipesWhenOffsetThenOffset(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -101,7 +98,6 @@ func TestGetAllRecipesWhenOffsetThenOffset(t *testing.T) {
 
 func TestGetAllRecipesWhenNoneThenEmptyArray(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -123,7 +119,7 @@ func TestGetAllRecipesWhenNoneThenEmptyArray(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected := []model.Recipe{}
+	var expected []model.Recipe
 
 	assert.Equal(t, expected, recipes)
 }
@@ -140,7 +136,6 @@ func TestGetAllRecipesWhenNoAuthorizationThenError(t *testing.T) {
 
 func TestGetOneRecipe(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -169,7 +164,6 @@ func TestGetOneRecipe(t *testing.T) {
 
 func TestGetOneRecipeWhenBelongsToOtherUserThenNull(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -211,7 +205,6 @@ func TestGetOneRecipeWhenInvalidIDClientError(t *testing.T) {
 
 func TestCreateRecipe(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -226,7 +219,7 @@ func TestCreateRecipe(t *testing.T) {
 			model.Ingredient{
 				Name:     "ing1",
 				Quantity: decimal.NewFromFloat(1),
-				Measure:  null.StringFrom("meas 1"),
+				Measure:  "meas 1",
 			},
 			model.Ingredient{
 				Name:     "ing2",
@@ -344,7 +337,6 @@ func TestCreateRecipeWhenNoAuthorizationThenError(t *testing.T) {
 
 func TestUpdateRecipe(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -355,8 +347,8 @@ func TestUpdateRecipe(t *testing.T) {
 
 	r.Name = "Updated name"
 	r.Instructions = "Updated instructions"
-	r.Description = null.StringFrom("Updated desc")
-	r.Yield = null.IntFrom(20)
+	r.Description = "Updated desc"
+	r.Yield = 20
 	r.Ingredients[0].Name = "Updated ing name"
 
 	bytes, err := json.Marshal(r)
@@ -465,7 +457,6 @@ func TestUpdateRecipeWhenNoAuthorizationThenError(t *testing.T) {
 
 func TestDeleteRecipe(t *testing.T) {
 	opts := newResetOptions()
-	opts.recreateMenus = false
 	opts.recreatePlanners = false
 	resetDatabase(t, *opts)
 
@@ -545,7 +536,7 @@ func ingredientsFromDb(t *testing.T, recipeID int) []model.Ingredient {
 
 	query = sqlDb.Rebind(query)
 
-	ingredients := []model.Ingredient{}
+	var ingredients []model.Ingredient
 	rows, err := sqlDb.Query(query, recipeID)
 	if err != nil {
 		t.Fatal(err)
@@ -563,7 +554,7 @@ func ingredientsFromDb(t *testing.T, recipeID int) []model.Ingredient {
 			t.Fatal(err)
 		}
 
-		i := model.Ingredient{ID: ingID, RecipeID: rID, Name: ingName, Measure: mName, Quantity: q}
+		i := model.Ingredient{ID: ingID, RecipeID: rID, Name: ingName, Measure: mName.String, Quantity: q}
 		ingredients = append(ingredients, i)
 	}
 

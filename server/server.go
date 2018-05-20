@@ -6,36 +6,20 @@ import (
 	"net/http"
 
 	"github.com/chvck/meal-planner/controller"
-	"github.com/chvck/meal-planner/datamodel"
-
 	"github.com/chvck/meal-planner/config"
-	"github.com/chvck/meal-planner/db"
-	"github.com/chvck/meal-planner/service"
+	"github.com/chvck/meal-planner/datastore/sqldatastore"
 )
 
 // Run is the entry point for running the server
 func Run(cfg *config.Info) (*http.Server, error) {
-	database := &db.SqlxAdapter{}
-	err := database.Initialize(cfg.DbType, cfg.DbString)
+	dataStore, err := sqldatastore.NewSQLDataStore(cfg.DbType, cfg.DbString)
 	if err != nil {
 		return nil, err
 	}
 
-	userDataModel := datamodel.NewSQLUser(database)
-	recipeDataModel := datamodel.NewSQLRecipe(database)
-	menuDataModel := datamodel.NewSQLMenu(database)
-	// plannerDataModel := datamodel.NewPlannerRecipe(database)
+	cont := controller.NewStandardController(dataStore, cfg.AuthKey)
 
-	userService := service.NewUserService(userDataModel)
-	recipeService := service.NewRecipeService(recipeDataModel)
-	menuService := service.NewMenuService(menuDataModel, recipeDataModel)
-	// plannerService := service.NewPlannerService(plannerDataModel, menuDataModel, recipeDataModel)
-
-	menuController := controller.NewMenuController(menuService)
-	userController := controller.NewUserController(userService, cfg.AuthKey)
-	recipeController := controller.NewRecipeController(recipeService)
-
-	handler := NewHandler(menuController, recipeController, userController)
+	handler := NewHandler(cont)
 
 	r := routes(handler, cfg.AuthKey)
 
