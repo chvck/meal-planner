@@ -65,7 +65,7 @@ func validateMiddleware(next http.HandlerFunc, reqLevel float64) http.HandlerFun
 					w.WriteHeader(http.StatusUnauthorized)
 					json.NewEncoder(w).Encode(exception{Message: "Not authorized"})
 				}
-				u := model.User{ID: int(claims["id"].(float64)), Username: claims["username"].(string)}
+				u := model.User{ID: claims["id"].(string), Username: claims["username"].(string)}
 				context.Set(req, "user", u)
 				next(w, req)
 			} else {

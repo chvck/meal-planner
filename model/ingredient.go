@@ -8,8 +8,8 @@ import (
 
 // Ingredient is the model for the ingredient table
 type Ingredient struct {
-	ID       int             `json:"id,omitempty"`
-	RecipeID int             `json:"recipeId,omitempty"`
+	ID       string          `json:"id,omitempty"`
+	RecipeID string          `json:"recipeId,omitempty"`
 	Name     string          `json:"name,omitempty"`
 	Measure  string          `json:"measure,omitempty"`
 	Quantity decimal.Decimal `json:"quantity,omitempty"`

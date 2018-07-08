@@ -6,7 +6,7 @@ import (
 
 // User is the model for the user table
 type User struct {
-	ID        int    `json:"id,omitempty"`
+	ID        string `json:"id,omitempty"`
 	Username  string `json:"username,omitempty"`
 	Email     string `json:"email,omitempty"`
 	CreatedAt int    `json:"createdAt,omitempty"`
@@ -36,7 +36,7 @@ func (u User) Validate() []error {
 // ValidatePassword checks that the password is valid
 func ValidatePassword(pwd string) error {
 	if len(pwd) < 8 {
-		return errors.New("password cannot be empty")
+		return errors.New("password must be longer than 8 characters")
 	}
 
 	return nil

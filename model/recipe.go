@@ -6,8 +6,8 @@ import (
 
 // Recipe is the model for the recipe table
 type Recipe struct {
-	ID           int          `json:"id,omitempty"`
-	UserID       int          `json:"userId,omitempty"`
+	ID           string       `json:"id,omitempty"`
+	UserID       string       `json:"userId,omitempty"`
 	Name         string       `json:"name,omitempty"`
 	Instructions string       `json:"instructions,omitempty"`
 	Yield        int          `json:"yield,omitempty"`

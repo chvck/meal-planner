@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/chvck/meal-planner/model"
 	"github.com/gorilla/context"
@@ -36,14 +35,8 @@ func (sc StandardController) RecipeIndex(w http.ResponseWriter, r *http.Request)
 func (sc StandardController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	u := context.Get(r, "user").(model.User)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		log.Println(err.Error())
-		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
-		return
-	}
 
-	recipe, err := sc.ds.Recipe(id, u.ID)
+	recipe, err := sc.ds.Recipe(vars["id"], u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -90,12 +83,6 @@ func (sc StandardController) RecipeCreate(w http.ResponseWriter, r *http.Request
 func (sc StandardController) RecipeUpdate(w http.ResponseWriter, r *http.Request) {
 	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		log.Println(err.Error())
-		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
-		return
-	}
 
 	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
@@ -116,7 +103,7 @@ func (sc StandardController) RecipeUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = sc.ds.RecipeUpdate(re, id, u.ID)
+	err = sc.ds.RecipeUpdate(re, vars["id"], u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -131,14 +118,7 @@ func (sc StandardController) RecipeDelete(w http.ResponseWriter, r *http.Request
 	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 
-	id, err := strconv.Atoi(vars["id"])
-	if err != nil {
-		log.Println(err.Error())
-		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
-		return
-	}
-
-	err = sc.ds.RecipeDelete(id, u.ID)
+	err := sc.ds.RecipeDelete(vars["id"], u.ID)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)

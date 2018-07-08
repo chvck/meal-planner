@@ -1,8 +1,11 @@
 {
-  "dbString": "postgres://localhost:5432/meals",
-  "dbType": "postgres",
+  "dbServer": "localhost",
+  "dbPort": 8091,
+  "dbName": "meals",
   "httpPort": 3000,
   "httpsPort": null,
   "hostname": "localhost",
-  "authKey": "secret"
+  "authKey": "secret",
+  "dbUsername": "user",
+  "dbPassword": "password"
 }

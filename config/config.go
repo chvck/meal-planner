@@ -7,12 +7,15 @@ import (
 
 // Info contains the application config.
 type Info struct {
-	DbString  string `json:"dbString"`
-	DbType    string `json:"dbType"`
-	HTTPPort  int    `json:"httpPort"`
-	HTTPSPort int    `json:"httpsPort"`
-	Hostname  string `json:"hostname"`
-	AuthKey   string `json:"authKey"`
+	DbServer   string `json:"dbServer"`
+	DbPort     uint   `json:"dbPort"`
+	DbName     string `json:"dbName"`
+	HTTPPort   uint   `json:"httpPort"`
+	HTTPSPort  uint   `json:"httpsPort"`
+	Hostname   string `json:"hostname"`
+	AuthKey    string `json:"authKey"`
+	DbUsername string `json:"dbUsername"`
+	DbPassword string `json:"dbPassword"`
 }
 
 // ParseJSON unmarshals bytes to structs

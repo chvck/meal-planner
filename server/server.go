@@ -5,14 +5,20 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/chvck/meal-planner/controller"
 	"github.com/chvck/meal-planner/config"
-	"github.com/chvck/meal-planner/datastore/sqldatastore"
+	"github.com/chvck/meal-planner/controller"
+	"github.com/chvck/meal-planner/datastore/cbdatastore"
 )
 
 // Run is the entry point for running the server
 func Run(cfg *config.Info) (*http.Server, error) {
-	dataStore, err := sqldatastore.NewSQLDataStore(cfg.DbType, cfg.DbString)
+	dataStore, err := cbdatastore.NewCBDataStore(
+		cfg.DbServer,
+		cfg.DbPort,
+		cfg.DbName,
+		cfg.DbUsername,
+		cfg.DbPassword,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -29,6 +35,7 @@ func Run(cfg *config.Info) (*http.Server, error) {
 	go func() {
 		if err := srv.ListenAndServe(); err != nil {
 			log.Printf("Error running server: %s", err)
+			return
 		}
 	}()
 

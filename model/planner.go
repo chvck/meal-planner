@@ -4,18 +4,17 @@ import "errors"
 
 // Planner is the model for the planner table
 type Planner struct {
-	ID          int          `json:"id,omitempty"`
-	UserID      int          `json:"userId,omitempty"`
+	ID          string       `json:"id,omitempty"`
+	UserID      string       `json:"userID,omitempty"`
 	When        int          `json:"when,omitempty"`
 	For         string       `json:"for,omitempty"`
 	RecipeNames []RecipeName `json:"recipes,omitempty"`
 }
 
 type RecipeName struct {
-	ID   int `json:"id"`
-	Name int `json:"name"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
-
 
 // Validate checks that the planner is valid
 func (p Planner) Validate() []error {
