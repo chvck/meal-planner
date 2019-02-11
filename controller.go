@@ -30,7 +30,7 @@ type StandardController struct {
 	authKey string
 }
 
-func NewStandardController(ds DataStore, authKey string) *StandardController {
+func NewController(ds DataStore, authKey string) Controller {
 	return &StandardController{
 		ds:      ds,
 		authKey: authKey,

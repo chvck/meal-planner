@@ -19,7 +19,7 @@ func Run(cfg *Info) (*http.Server, error) {
 		return nil, err
 	}
 
-	cont := NewStandardController(dataStore, cfg.AuthKey)
+	cont := NewController(dataStore, cfg.AuthKey)
 
 	handler := NewHandler(cont)
 
