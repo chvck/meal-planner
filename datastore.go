@@ -80,7 +80,7 @@ type recipe struct {
 	Type string `json:"type,omitempty"`
 }
 
-// One retrieves a single Recipe by id
+// Recipe retrieves a single Recipe by id
 func (ds CBDataStore) Recipe(id, userID string) (*Recipe, error) {
 	r := recipe{}
 	_, err := ds.bucket.Get(id, &r)
@@ -95,21 +95,23 @@ func (ds CBDataStore) Recipe(id, userID string) (*Recipe, error) {
 	return r.Recipe, nil
 }
 
-// AllWithLimit retrieves x recipes starting from an offset
+// Recipes retrieves x recipes starting from an offset
 func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]Recipe, error) {
-	var recipes []Recipe
-	query := gocb.NewN1qlQuery(`SELECT id, name, instructions, description, yield, prep_time, cook_time, user_id, ingredients
-		FROM meals
-		WHERE type = "recipe" AND user_id = $1
-		ORDER BY id
-		LIMIT $2 OFFSET $3;`)
+	query := gocb.NewN1qlQuery(
+		fmt.Sprintf("SELECT id, name, instructions, description, yield, prep_time, cook_time, user_id, ingredients "+
+			"FROM `%s` "+
+			"WHERE `type` = \"recipe\" AND user_id = $1 "+
+			"ORDER BY id "+
+			"LIMIT $2 OFFSET $3;", ds.bucket.Name()),
+	)
 
-	results, err := ds.bucket.ExecuteN1qlQuery(query, [3]interface{}{userID, limit, offset})
+	results, err := ds.bucket.ExecuteN1qlQuery(query, []interface{}{userID, limit, offset})
 	if err != nil {
 		return nil, err
 	}
 
 	r := Recipe{}
+	var recipes []Recipe
 	for results.Next(&r) {
 		recipes = append(recipes, r)
 	}
@@ -119,7 +121,7 @@ func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]Recipe, error
 	}
 
 	if len(recipes) == 0 {
-		return recipes, nil
+		return []Recipe{}, nil
 	}
 
 	return recipes, nil
