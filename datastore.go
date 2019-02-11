@@ -42,8 +42,8 @@ type CBDataStore struct {
 	bucket  *gocb.Bucket
 }
 
-// NewCBDataStore creates and returns a new CBDataStore
-func NewCBDataStore(host string, port uint, bucketName, username, password string) (*CBDataStore, error) {
+// NewDataStore creates and returns a new DataStore
+func NewDataStore(host string, port uint, bucketName, username, password string) (DataStore, error) {
 	connString := fmt.Sprintf("http://%s:%d", host, port)
 	cluster, err := gocb.Connect(connString)
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 
 // Run is the entry point for running the server
 func Run(cfg *Info) (*http.Server, error) {
-	dataStore, err := NewCBDataStore(
+	dataStore, err := NewDataStore(
 		cfg.DbServer,
 		cfg.DbPort,
 		cfg.DbName,
