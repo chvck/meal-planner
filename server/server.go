@@ -7,21 +7,22 @@ import (
 	"log"
 	"net/http"
 
+	_ "github.com/jnewmano/grpc-json-proxy/codec"
 	"google.golang.org/grpc"
 )
 
 // Run is the entry point for running the server
 func Run(cfg *Info) (*http.Server, error) {
-	//dataStore, err := NewDataStore(
-	//	cfg.DbServer,
-	//	cfg.DbPort,
-	//	cfg.DbName,
-	//	cfg.DbUsername,
-	//	cfg.DbPassword,
-	//)
-	//if err != nil {
-	//	return nil, err
-	//}
+	dataStore, err := NewDataStore(
+		cfg.DbServer,
+		cfg.DbPort,
+		cfg.DbName,
+		cfg.DbUsername,
+		cfg.DbPassword,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	//cont := NewController(dataStore, cfg.AuthKey)
 	//
@@ -34,7 +35,10 @@ func Run(cfg *Info) (*http.Server, error) {
 	//srv := &http.Server{Addr: address, Handler: r}
 
 	grpcServer := grpc.NewServer()
-	service.RegisterMealPlannerServiceServer(grpcServer, &MealPlannerService{})
+	service.RegisterMealPlannerServiceServer(grpcServer, &MealPlannerService{
+		datastore: dataStore,
+		authKey:   cfg.AuthKey,
+	})
 
 	wrappedServer := grpcweb.WrapServer(grpcServer, grpcweb.WithOriginFunc(func(origin string) bool {
 		return true

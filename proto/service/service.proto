@@ -52,7 +52,7 @@ message LoginUserRequest {
 }
 
 message LoginUserResponse {
-    bytes token = 1;
+    string token = 1;
 }
 
 message CreateUserRequest {

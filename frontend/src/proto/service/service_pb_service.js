@@ -1,4 +1,3 @@
-/* eslint-disable */
 // package: chvck.mealplanner.service
 // file: proto/service/service.proto
 

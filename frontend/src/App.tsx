@@ -4,19 +4,21 @@ import './App.css';
 import { grpc } from "grpc-web-client";
 import { BrowserHeaders } from "browser-headers";
 import { MealPlannerService } from "./proto/service/service_pb_service"
-import {AllRecipesRequest, AllRecipesResponse} from "./proto/service/service_pb"
+import {LoginUserRequest, LoginUserResponse} from "./proto/service/service_pb"
 
 function getResponse(){
 
-  const message = new AllRecipesRequest();
+  const message = new LoginUserRequest();
+  message.setPassword("password");
+  message.setUsername("chvck");
 
-  grpc.invoke(MealPlannerService.AllRecipes ,{
+  grpc.invoke(MealPlannerService.LoginUser ,{
     request : message,
     host : "http://localhost:3001",
     onHeaders: (headers: BrowserHeaders) => {
       console.log("MealPlannerService.onHeaders", headers);
     },
-    onMessage: (message: AllRecipesResponse) => {
+    onMessage: (message: LoginUserResponse) => {
       console.log("Echo.onMessage", message.toObject());
       const elt = document.getElementById("greeting");
       if (elt != null ) {

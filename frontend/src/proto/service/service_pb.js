@@ -1,4 +1,3 @@
-/* eslint-disable */
 /**
  * @fileoverview
  * @enhanceable
@@ -1908,7 +1907,7 @@ proto.chvck.mealplanner.service.LoginUserResponse.prototype.toObject = function(
  */
 proto.chvck.mealplanner.service.LoginUserResponse.toObject = function(includeInstance, msg) {
   var f, obj = {
-    token: msg.getToken_asB64()
+    token: (f = jspb.Message.getFieldWithDefault(msg, 1, "")) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -1946,7 +1945,7 @@ proto.chvck.mealplanner.service.LoginUserResponse.deserializeBinaryFromReader = 
     var field = reader.getFieldNumber();
     switch (field) {
     case 1:
-      var value = /** @type {!Uint8Array} */ (reader.readBytes());
+      var value = /** @type {string} */ (reader.readString());
       msg.setToken(value);
       break;
     default:
@@ -1978,9 +1977,9 @@ proto.chvck.mealplanner.service.LoginUserResponse.prototype.serializeBinary = fu
  */
 proto.chvck.mealplanner.service.LoginUserResponse.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getToken_asU8();
+  f = message.getToken();
   if (f.length > 0) {
-    writer.writeBytes(
+    writer.writeString(
       1,
       f
     );
@@ -1989,41 +1988,17 @@ proto.chvck.mealplanner.service.LoginUserResponse.serializeBinaryToWriter = func
 
 
 /**
- * optional bytes token = 1;
- * @return {!(string|Uint8Array)}
- */
-proto.chvck.mealplanner.service.LoginUserResponse.prototype.getToken = function() {
-  return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
-
-/**
- * optional bytes token = 1;
- * This is a type-conversion wrapper around `getToken()`
+ * optional string token = 1;
  * @return {string}
  */
-proto.chvck.mealplanner.service.LoginUserResponse.prototype.getToken_asB64 = function() {
-  return /** @type {string} */ (jspb.Message.bytesAsB64(
-      this.getToken()));
+proto.chvck.mealplanner.service.LoginUserResponse.prototype.getToken = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
 
-/**
- * optional bytes token = 1;
- * Note that Uint8Array is not supported on all browsers.
- * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getToken()`
- * @return {!Uint8Array}
- */
-proto.chvck.mealplanner.service.LoginUserResponse.prototype.getToken_asU8 = function() {
-  return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
-      this.getToken()));
-};
-
-
-/** @param {!(string|Uint8Array)} value */
+/** @param {string} value */
 proto.chvck.mealplanner.service.LoginUserResponse.prototype.setToken = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  jspb.Message.setProto3StringField(this, 1, value);
 };
 
 

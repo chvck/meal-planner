@@ -241,10 +241,8 @@ export namespace LoginUserRequest {
 }
 
 export class LoginUserResponse extends jspb.Message {
-  getToken(): Uint8Array | string;
-  getToken_asU8(): Uint8Array;
-  getToken_asB64(): string;
-  setToken(value: Uint8Array | string): void;
+  getToken(): string;
+  setToken(value: string): void;
 
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): LoginUserResponse.AsObject;
@@ -258,7 +256,7 @@ export class LoginUserResponse extends jspb.Message {
 
 export namespace LoginUserResponse {
   export type AsObject = {
-    token: Uint8Array | string,
+    token: string,
   }
 }
 
