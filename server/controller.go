@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strconv"
 
+	"github.com/chvck/meal-planner/proto/model"
 	"github.com/pkg/errors"
 
 	"github.com/dgrijalva/jwt-go"
@@ -54,10 +55,10 @@ const (
 
 // RecipeIndex is the HTTP handler for the recipe index endpoint
 func (sc StandardController) RecipeIndex(w http.ResponseWriter, r *http.Request) {
-	u := context.Get(r, "user").(User)
+	u := context.Get(r, "user").(model.User)
 	perPage := getURLParameterAsInt(r.URL, "perPage", defaultRecipePerPage)
 	offset := getURLParameterAsInt(r.URL, "offset", defaultRecipeOffset)
-	recipes, err := sc.ds.Recipes(perPage, offset, u.ID)
+	recipes, err := sc.ds.Recipes(perPage, offset, u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -70,9 +71,9 @@ func (sc StandardController) RecipeIndex(w http.ResponseWriter, r *http.Request)
 // RecipeByID is the HTTP handler for fetching a single recipe
 func (sc StandardController) RecipeByID(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	u := context.Get(r, "user").(User)
+	u := context.Get(r, "user").(model.User)
 
-	recipe, err := sc.ds.Recipe(vars["id"], u.ID)
+	recipe, err := sc.ds.Recipe(vars["id"], u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -91,7 +92,7 @@ func (sc StandardController) RecipeCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var re Recipe
+	var re model.Recipe
 	if err := json.Unmarshal(body, &re); err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
@@ -104,8 +105,8 @@ func (sc StandardController) RecipeCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	u := context.Get(r, "user").(User)
-	created, err := sc.ds.RecipeCreate(re, u.ID)
+	u := context.Get(r, "user").(model.User)
+	created, err := sc.ds.RecipeCreate(re, u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -117,10 +118,10 @@ func (sc StandardController) RecipeCreate(w http.ResponseWriter, r *http.Request
 
 // RecipeUpdate is the HTTP handler for updating a recipe
 func (sc StandardController) RecipeUpdate(w http.ResponseWriter, r *http.Request) {
-	u := context.Get(r, "user").(User)
+	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 
-	var re Recipe
+	var re model.Recipe
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(err.Error())
@@ -139,7 +140,7 @@ func (sc StandardController) RecipeUpdate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = sc.ds.RecipeUpdate(re, vars["id"], u.ID)
+	err = sc.ds.RecipeUpdate(re, vars["id"], u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -151,10 +152,10 @@ func (sc StandardController) RecipeUpdate(w http.ResponseWriter, r *http.Request
 
 // RecipeDelete is the HTTP handler for deleting a recipe
 func (sc StandardController) RecipeDelete(w http.ResponseWriter, r *http.Request) {
-	u := context.Get(r, "user").(User)
+	u := context.Get(r, "user").(model.User)
 	vars := mux.Vars(r)
 
-	err := sc.ds.RecipeDelete(vars["id"], u.ID)
+	err := sc.ds.RecipeDelete(vars["id"], u.Id)
 	if err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusInternalServerError)
@@ -165,7 +166,7 @@ func (sc StandardController) RecipeDelete(w http.ResponseWriter, r *http.Request
 }
 
 type userWithPassword struct {
-	User
+	model.User
 	Password string `json:"password,omitzero"`
 }
 
@@ -225,7 +226,7 @@ func (sc StandardController) UserCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := ValidatePassword(u.Password); err != nil {
+	if err := model.ValidatePassword(u.Password); err != nil {
 		log.Println(err.Error())
 		JSONResponseWithCode(NewJSONError(err), w, http.StatusBadRequest)
 		return
@@ -241,13 +242,13 @@ func (sc StandardController) UserCreate(w http.ResponseWriter, r *http.Request) 
 	JSONResponseWithCode(created, w, 201)
 }
 
-func createToken(user *User, key string) (*jwtToken, error) {
+func createToken(user *model.User, key string) (*jwtToken, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username":  user.Username,
 		"email":     user.Email,
-		"id":        user.ID,
+		"id":        user.Id,
 		"lastLogin": user.LastLogin,
-		"level":     LevelUser,
+		"level":     model.LevelUser,
 	})
 	tokenString, err := token.SignedString([]byte(key))
 	if err != nil {

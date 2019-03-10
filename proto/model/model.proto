@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package chvck.mealplanner.model;
+
+option go_package = "model";
+
+message User {
+    string id = 1;
+    string username = 2;
+    string email = 3;
+    int64 created_at = 4;
+    int64 updated_at = 5;
+    int64 last_login = 6;
+};
+
+message Ingredient {
+    string id = 1;
+    string recipe_id = 2;
+    string name = 3;
+    string measure = 4;
+    string quantity = 5;
+}
+
+message Recipe {
+    string id = 1;
+    string user_id = 2;
+    string name = 3;
+    string instructions = 4;
+    int32 yield = 5;
+    int32 prep_time = 6;
+    int32 cook_time = 7;
+    string description = 8;
+    repeated Ingredient ingredients = 9;
+}
+
+message Planner {
+    string id = 1;
+    string user_id = 2;
+    int64 date = 3;
+    enum Mealtime {
+        BREAKFAST = 0;
+        LUNCH = 1;
+        TEA = 2;
+        SUPPER = 3;
+        SNACK = 4;
+    }
+    Mealtime mealtime = 4;
+    repeated string recipe_ids = 5;
+}

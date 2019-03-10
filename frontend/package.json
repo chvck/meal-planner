@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@improbable-eng/grpc-web": "^0.9.1",
     "@types/jest": "^24.0.5",
-    "@types/node": "^11.9.4",
     "@types/react": "^16.8.3",
     "@types/react-dom": "^16.8.2",
+    "browser-headers": "^0.4.1",
+    "google-protobuf": "^3.7.0",
+    "grpc-web-client": "^0.7.0",
     "react": "^16.8.2",
     "react-dom": "^16.8.2",
-    "react-scripts": "2.1.5",
-    "typescript": "^3.3.3"
+    "react-scripts": "2.1.5"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -26,5 +28,13 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "@types/google-protobuf": "^3.2.7",
+    "@types/node": "^11.11.0",
+    "gulp": "^4.0.0",
+    "gulp-typescript": "^5.0.0",
+    "ts-protoc-gen": "^0.9.0",
+    "typescript": "^3.3.3333"
+  }
 }

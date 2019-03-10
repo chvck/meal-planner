@@ -4,10 +4,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/chvck/meal-planner/server"
 )
 
 func main() {
-	conf, err := Load("config.json")
+	conf, err := server.Load("config.json")
 
 	if err != nil {
 		log.Fatalln(err)
@@ -17,7 +19,7 @@ func main() {
 
 	signal.Notify(stop, os.Interrupt)
 
-	srv, err := Run(conf)
+	srv, err := server.Run(conf)
 	if err != nil {
 		log.Fatal(err)
 	}

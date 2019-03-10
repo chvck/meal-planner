@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"errors"
@@ -7,23 +7,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/couchbase/gocb"
+	"github.com/chvck/meal-planner/proto/model"
+	"gopkg.in/couchbase/gocb.v1"
 )
 
 // DataStore is used to access data from the underlying store
 type DataStore interface {
-	User(id string) (*User, error)
-	Users(limit, offset int) ([]User, error)
-	UserCreate(u User, password []byte) (*User, error)
-	UserValidatePassword(username string, pw []byte) *User
-	Recipe(id, userID string) (*Recipe, error)
-	Recipes(limit, offset int, userID string) ([]Recipe, error)
-	RecipeCreate(r Recipe, userID string) (*Recipe, error)
-	RecipeUpdate(r Recipe, id, userID string) error
+	User(id string) (*model.User, error)
+	Users(limit, offset int) ([]model.User, error)
+	UserCreate(u model.User, password []byte) (*model.User, error)
+	UserValidatePassword(username string, pw []byte) *model.User
+	Recipe(id, userID string) (*model.Recipe, error)
+	Recipes(limit, offset int, userID string) ([]model.Recipe, error)
+	RecipeCreate(r model.Recipe, userID string) (*model.Recipe, error)
+	RecipeUpdate(r model.Recipe, id, userID string) error
 	RecipeDelete(id, userID string) error
-	PlannerWithRecipeNames(id, userID string) (*Planner, error)
-	PlannersWithRecipeNames(start, end int, userID string) ([]Planner, error)
-	PlannerCreate(when int, mealtime, userID string) (*Planner, error)
+	PlannerWithRecipeNames(id, userID string) (*model.Planner, error)
+	PlannersWithRecipeNames(start, end int, userID string) ([]model.Planner, error)
+	PlannerCreate(date int64, mealtime model.Planner_Mealtime, userID string) (*model.Planner, error)
 	PlannerAddRecipe(plannerID, recipeID, userID string) error
 	PlannerRemoveRecipe(plannerID, recipeID, userID string) error
 }
@@ -50,22 +51,23 @@ func NewDataStore(host string, port uint, bucketName, username, password string)
 		return nil, err
 	}
 
-	cluster.Authenticate(gocb.PasswordAuthenticator{
+	err = cluster.Authenticate(gocb.PasswordAuthenticator{
 		Username: username,
 		Password: password,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	bucket, err := cluster.OpenBucket(bucketName, "")
 	if err != nil {
 		return nil, err
 	}
 
-	dataStore := CBDataStore{
+	return &CBDataStore{
 		cluster: cluster,
 		bucket:  bucket,
-	}
-
-	return &dataStore, nil
+	}, nil
 }
 
 func checkModelID(id, userID string) bool {
@@ -76,19 +78,19 @@ func checkModelID(id, userID string) bool {
 }
 
 type recipe struct {
-	*Recipe
+	*model.Recipe
 	Type string `json:"type,omitempty"`
 }
 
 // Recipe retrieves a single Recipe by id
-func (ds CBDataStore) Recipe(id, userID string) (*Recipe, error) {
+func (ds CBDataStore) Recipe(id, userID string) (*model.Recipe, error) {
 	r := recipe{}
 	_, err := ds.bucket.Get(id, &r)
 	if err != nil {
 		return nil, err
 	}
 
-	if r.UserID != userID {
+	if r.UserId != userID {
 		return nil, fmt.Errorf("")
 	}
 
@@ -96,7 +98,7 @@ func (ds CBDataStore) Recipe(id, userID string) (*Recipe, error) {
 }
 
 // Recipes retrieves x recipes starting from an offset
-func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]Recipe, error) {
+func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]model.Recipe, error) {
 	query := gocb.NewN1qlQuery(
 		fmt.Sprintf("SELECT id, name, instructions, description, yield, prep_time, cook_time, user_id, ingredients "+
 			"FROM `%s` "+
@@ -110,8 +112,8 @@ func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]Recipe, error
 		return nil, err
 	}
 
-	r := Recipe{}
-	var recipes []Recipe
+	r := model.Recipe{}
+	var recipes []model.Recipe
 	for results.Next(&r) {
 		recipes = append(recipes, r)
 	}
@@ -121,14 +123,14 @@ func (ds CBDataStore) Recipes(limit, offset int, userID string) ([]Recipe, error
 	}
 
 	if len(recipes) == 0 {
-		return []Recipe{}, nil
+		return []model.Recipe{}, nil
 	}
 
 	return recipes, nil
 }
 
 // Create creates the specific recipe
-func (ds CBDataStore) RecipeCreate(modelRecipe Recipe, userID string) (*Recipe, error) {
+func (ds CBDataStore) RecipeCreate(modelRecipe model.Recipe, userID string) (*model.Recipe, error) {
 	key := fmt.Sprintf("recipe::%s::%s", userID, modelRecipe.Name)
 	newR := new(recipe)
 	newR.Recipe = &modelRecipe
@@ -143,8 +145,8 @@ func (ds CBDataStore) RecipeCreate(modelRecipe Recipe, userID string) (*Recipe, 
 }
 
 // Update updates the specific recipe
-func (ds CBDataStore) RecipeUpdate(modelRecipe Recipe, id, userID string) error {
-	_, err := ds.bucket.Replace(modelRecipe.ID, modelRecipe, 0, 0)
+func (ds CBDataStore) RecipeUpdate(modelRecipe model.Recipe, id, userID string) error {
+	_, err := ds.bucket.Replace(modelRecipe.Id, modelRecipe, 0, 0)
 	if err != nil {
 		return err
 	}
@@ -178,11 +180,11 @@ func (ds CBDataStore) RecipeDelete(id, userID string) error {
 }
 
 type planner struct {
-	*Planner
+	*model.Planner
 	Type string `json:"type,omitempty"`
 }
 
-func (ds *CBDataStore) PlannerWithRecipeNames(id, userID string) (*Planner, error) {
+func (ds *CBDataStore) PlannerWithRecipeNames(id, userID string) (*model.Planner, error) {
 	if !checkModelID(id, userID) {
 		return nil, errors.New("no planner found")
 	}
@@ -196,7 +198,7 @@ func (ds *CBDataStore) PlannerWithRecipeNames(id, userID string) (*Planner, erro
 	return p.Planner, nil
 }
 
-func (ds *CBDataStore) PlannersWithRecipeNames(start, end int, userID string) ([]Planner, error) {
+func (ds *CBDataStore) PlannersWithRecipeNames(start, end int, userID string) ([]model.Planner, error) {
 	query := gocb.NewN1qlQuery(`SELECT id, when, for, userID, recipes
 		FROM meals
 		WHERE type = "planner" AND user_id = $1
@@ -210,7 +212,7 @@ func (ds *CBDataStore) PlannersWithRecipeNames(start, end int, userID string) ([
 		return nil, err
 	}
 
-	var planners []Planner
+	var planners []model.Planner
 	p := planner{}
 	for results.Next(&p) {
 		planners = append(planners, *p.Planner)
@@ -223,12 +225,12 @@ func (ds *CBDataStore) PlannersWithRecipeNames(start, end int, userID string) ([
 	return planners, nil
 }
 
-func (ds *CBDataStore) PlannerCreate(when int, mealtime, userID string) (*Planner, error) {
-	key := fmt.Sprintf("planner::%s::%d::%s", userID, when, mealtime)
+func (ds *CBDataStore) PlannerCreate(date int64, mealtime model.Planner_Mealtime, userID string) (*model.Planner, error) {
+	key := fmt.Sprintf("planner::%s::%d::%s", userID, date, mealtime)
 	newP := new(planner)
 	newP.Type = "planner"
-	newP.When = when
-	newP.For = mealtime
+	newP.Date = date
+	newP.Mealtime = mealtime
 
 	_, err := ds.bucket.Insert(key, newP, 0)
 	if err != nil {
@@ -243,21 +245,9 @@ func (ds *CBDataStore) PlannerAddRecipe(plannerID, recipeID, userID string) erro
 		return errors.New("no planner found")
 	}
 
-	frag, err := ds.bucket.LookupIn(recipeID).Get("name").Execute()
-	if err != nil {
-		return err
-	}
-	var name string
-	err = frag.Content("name", &name)
-	if err != nil {
-		return err
-	}
-	ds.bucket.MutateIn(plannerID, 0, 0).ArrayAppend("recipes", RecipeName{
-		ID:   recipeID,
-		Name: name,
-	}, true)
+	_, err := ds.bucket.MutateIn(plannerID, 0, 0).ArrayAppend("recipes", recipeID, true).Execute()
 
-	return nil
+	return err
 }
 
 func (ds *CBDataStore) PlannerRemoveRecipe(plannerID, recipeID, userID string) error {
@@ -265,35 +255,36 @@ func (ds *CBDataStore) PlannerRemoveRecipe(plannerID, recipeID, userID string) e
 		return errors.New("no planner found")
 	}
 
-	var p planner
-	cas, err := ds.bucket.Get(plannerID, &p)
+	frag, err := ds.bucket.LookupIn(plannerID).Get("recipe_ids").Execute()
 	if err != nil {
 		return err
 	}
 
-	newNames := make([]RecipeName, len(p.RecipeNames)-1)
-	for i, rn := range p.RecipeNames {
-		if rn.ID != recipeID {
-			newNames[i] = rn
+	var recipeIDs []string
+	err = frag.ContentByIndex(0, &recipeIDs)
+	if err != nil {
+		return err
+	}
+
+	var newRecipeIDs []string
+	for _, id := range recipeIDs {
+		if id != recipeID {
+			newRecipeIDs = append(newRecipeIDs, id)
 		}
 	}
 
-	p.RecipeNames = newNames
-	_, err = ds.bucket.Replace(plannerID, p, cas, 0)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err = ds.bucket.MutateIn(plannerID, frag.Cas(), 0).Replace("recipe_ids", newRecipeIDs).Execute()
+	return err
 }
 
 type user struct {
-	User
+	model.User
 	Type     string `json:"type,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
-func (ds *CBDataStore) User(id string) (*User, error) {
-	u := User{}
+func (ds *CBDataStore) User(id string) (*model.User, error) {
+	u := model.User{}
 	_, err := ds.bucket.Get(id, &u)
 	if err != nil {
 		return nil, err
@@ -302,8 +293,8 @@ func (ds *CBDataStore) User(id string) (*User, error) {
 	return &u, nil
 }
 
-func (ds *CBDataStore) Users(limit, offset int) ([]User, error) {
-	var users []User
+func (ds *CBDataStore) Users(limit, offset int) ([]model.User, error) {
+	var users []model.User
 	query := gocb.NewN1qlQuery(`SELECT id, username, email, created_at, updated_at, last_login
 		FROM meals
 		where type = "user"
@@ -314,7 +305,7 @@ func (ds *CBDataStore) Users(limit, offset int) ([]User, error) {
 		return nil, err
 	}
 
-	u := User{}
+	u := model.User{}
 	for results.Next(&u) {
 		users = append(users, u)
 	}
@@ -326,7 +317,7 @@ func (ds *CBDataStore) Users(limit, offset int) ([]User, error) {
 	return users, nil
 }
 
-func (ds *CBDataStore) UserCreate(u User, password []byte) (*User, error) {
+func (ds *CBDataStore) UserCreate(u model.User, password []byte) (*model.User, error) {
 	hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -335,12 +326,12 @@ func (ds *CBDataStore) UserCreate(u User, password []byte) (*User, error) {
 	key := fmt.Sprintf("user::%s", u.Username)
 	newU := user{}
 	newU.Username = u.Username
-	newU.ID = key
+	newU.Id = key
 	newU.Email = u.Email
 
 	now := time.Now().Unix()
-	newU.CreatedAt = int(now)
-	newU.UpdatedAt = int(now)
+	newU.CreatedAt = now
+	newU.UpdatedAt = now
 	newU.Password = string(hash)
 	newU.Type = "user"
 
@@ -352,7 +343,7 @@ func (ds *CBDataStore) UserCreate(u User, password []byte) (*User, error) {
 	return &newU.User, nil
 }
 
-func (ds *CBDataStore) UserValidatePassword(username string, pw []byte) *User {
+func (ds *CBDataStore) UserValidatePassword(username string, pw []byte) *model.User {
 	var u user
 	_, err := ds.bucket.Get(fmt.Sprintf("user::%s", username), &u)
 	if err != nil {

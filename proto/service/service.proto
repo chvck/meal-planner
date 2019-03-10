@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package chvck.mealplanner.service;
+
+option go_package = "service";
+
+import "proto/model/model.proto";
+
+message AllRecipesRequest {
+    int64 offset = 1;
+    int32 limit = 2;
+}
+
+message AllRecipesResponse {
+    repeated chvck.mealplanner.model.Recipe recipes = 1;
+}
+
+message RecipeByIDRequest {
+    int64 recipe_id = 1;
+}
+
+message RecipeByIDResponse {
+    chvck.mealplanner.model.Recipe recipe = 1;
+}
+
+message CreateRecipeRequest {
+    chvck.mealplanner.model.Recipe recipe = 1;
+}
+
+message CreateRecipeResponse {
+    chvck.mealplanner.model.Recipe recipe = 1;
+}
+
+message UpdateRecipeRequest {
+    chvck.mealplanner.model.Recipe recipe = 1;
+}
+
+message UpdateRecipeResponse {
+    chvck.mealplanner.model.Recipe recipe = 1;
+}
+
+message DeleteRecipeRequest {
+    int64 recipe_id = 1;
+}
+
+message DeleteRecipeResponse {
+}
+
+message LoginUserRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginUserResponse {
+    bytes token = 1;
+}
+
+message CreateUserRequest {
+    chvck.mealplanner.model.User user = 1;
+    string password = 2;
+}
+
+message CreateUserResponse {
+    chvck.mealplanner.model.User user = 1;
+}
+
+service MealPlannerService {
+    rpc AllRecipes(AllRecipesRequest) returns (AllRecipesResponse);
+    rpc RecipeByID(RecipeByIDRequest) returns (RecipeByIDResponse);
+    rpc CreateRecipe(CreateRecipeRequest) returns (CreateRecipeResponse);
+    rpc UpdateRecipe(UpdateRecipeRequest) returns (UpdateRecipeResponse);
+    rpc DeleteRecipe(DeleteRecipeRequest) returns (DeleteRecipeResponse);
+    rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+    rpc LoginUser(LoginUserRequest) returns (LoginUserResponse);
+}

@@ -1,0 +1,12 @@
+protoc:
+  version: 3.7.0
+lint:
+  group: uber2
+generate:
+  go_options:
+    import_path: github.com/chvck/meal-planner/
+  plugins:
+    - name: go
+      type: go
+      flags: plugins=grpc
+      output: ./

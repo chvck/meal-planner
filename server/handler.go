@@ -1,4 +1,4 @@
-package main
+package server
 
 // Handler is a container for controllers, providing a single point of access
 // for the router
